@@ -3,6 +3,7 @@
 #' Opens modal (text-box for input) to ask for user credentials
 #' @return a modal object
 #' @rdname validate_user
+#' @import RPostgreSQL
 #' @export
 
 validate_user_nt <- function(INPUT) {

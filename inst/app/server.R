@@ -2,35 +2,40 @@
 
 ##based on https://github.com/jienagu/DT-Editor
 library(magrittr)
+library(RPostgreSQL)
 source("../../R/parsing.R")
 source("../../R/modals.R")
 source("../../R/reactive_observe.R")
 
 function(input, output, session) {
 
+  ## * log in to database ------------------------------------------------------
+
   ## check credentials exist for Postgresql database, else exit
 
   shiny::observe(validate_user_nt(input))
 
+  ## test connection to ensure user and connection OK
+
   shiny::observeEvent(input$userpass, {
       test_db_con(input)
       shiny::removeModal()
-
   })
 
-  ##allow disconnect as too many connections results in inability to connect!
+  ## allow disconnect as too many open connections (16+)
+  ## results in inability to connect!
 
   shiny::observeEvent(input$disconnex, {
       disc_db_con(input)
   })
 
-  ### allow changing of credentials for database
+  ## allow changing of credentials for database
 
   shiny::observeEvent(input$db_conxn, {
       connection_change(input)
   })
 
-  ## * log in to database ------------------------------------------------------
+  ## * take file inputs --------------------------------------------------------
 
   vals_data <- shiny::reactiveValues()
   con <- shiny::reactiveValues()
@@ -43,34 +48,27 @@ function(input, output, session) {
                           user = input$username,
                           password = input$password)
 
-    print(con$current)
     con$extantable <- DBI::dbExistsTable(con$current,
                                          input$con_newtable)
-    print(con$extantable)
 
-    ## * allow data input --------------------------------------------------------
+    ## * append or create table ------------------------------------------------
 
     if(con$extantable){
 
-      print("Table exists")
       newtable_exists(input)
-
-      ##asked if OK to store
 
       shiny::observeEvent(input$go_askdata, {
 
         shiny::removeModal()
+
         vpd <- dplyr::tbl(con$current, input$con_newtable)
-        vals_data$Data <- dplyr::collect(vpd) %>%
-                          renameParse()
+        col_vpd <- dplyr::collect(vpd)
+        vals_data$Data <- renameParse(col_vpd)
 
-        print("inputData")
-        vals_new <- inputData(input)
+        vals_new <- parse_input(input)
 
-        print("rbind Datas")
         vals_data$Data <<- rbind(vals_data$Data, vals_new)
 
-        print("copy_to")
         dplyr::copy_to(dest = con$current,
                        df = vals_data$Data,
                        name = input$con_newtable,
@@ -80,16 +78,13 @@ function(input, output, session) {
 
     } else {
 
-      print("Table doesn't exist")
-
-      vals_data$Data <- inputData(input)
+      vals_data$Data <- parse_input(input)
       tell_about_load()
 
-      print(head(vals_data$Data))
-
-      ##create table
       shiny::observeEvent(input$go_datared, {
+
         shiny::removeModal()
+
         DBI::dbCreateTable(conn = con$current,
                            name =  input$con_newtable,
                            fields = vals_data$Data)

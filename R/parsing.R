@@ -21,6 +21,7 @@ grepSpec <- function(INVEC, TERMS, INVERTS){
     print("Need more terms to find singular match")
     print(INVEC)
     print(TERMS)
+    return(NA)
   }
 }
 
@@ -67,16 +68,19 @@ tatNA <- function(A, B){
 #' @export
 
 parseGeneral <- function(SHEET, NAME){
+
+  print(paste0("Working on: ", NAME))
+
   SHEET1 <- SHEET
   colnames(SHEET1) <- toupper(colnames(SHEET1))
 
   ##parsing out unique colnames for each desired column
-  forenms <-  grepSpec(colnames(SHEET1), c("PATIENT", "NAME", "SURNAME"), c(FALSE, FALSE, TRUE))
+  forenms <- grepSpec(colnames(SHEET1), c("PATIENT", "NAME", "SURNAME"), c(FALSE, FALSE, TRUE))
   surnms <- grepSpec(colnames(SHEET1), c("PATIENT", "NAME", "SURNAME"), c(FALSE, FALSE, FALSE))
   lab_ids <- grepSpec(colnames(SHEET1), c("LAB", "SVUH"), c(FALSE, TRUE))
   svuh_ids <- grep("SVUH LAB", colnames(SHEET1), value=TRUE)
   hosp_nos <- grepSpec(colnames(SHEET1), c("HOSP", "NO"), c(FALSE, FALSE))
-  hosp_ids <- grep("HOSPITAL", colnames(SHEET1), value=TRUE)
+  hosp_ids <- grepSpec(colnames(SHEET1), c("HOSP", "NO"), c(FALSE, TRUE))
   tissue_codes <- grep("TISSUE CODE", colnames(SHEET1), value=TRUE)
   mutation_statuss <- grep("MUTATION", colnames(SHEET1), value=TRUE)
   date_reqs <- grep("DATE REQ", colnames(SHEET1), value=TRUE)
@@ -90,153 +94,75 @@ parseGeneral <- function(SHEET, NAME){
   date_recs <- grep("DATE RCD", colnames(SHEET1), value=TRUE)
   date_reps <- grep("DATE REP", colnames(SHEET1), value=TRUE)
 
-  wanted_vars <- c(forenms, surnms, lab_ids, svuh_ids, hosp_nos, hosp_ids,
+  wanted_vars <- c(forenms, surnms, lab_ids[1], svuh_ids, hosp_nos, hosp_ids[1],
                    tissue_codes, mutation_statuss, date_reqs, date_auths)
-  print(wanted_vars)
-  print(forenms)
-  print("parseGeneral")
-  print(colnames(SHEET1))
+
+  ##no lab_ids in EXTERNALS...
   tatNA_v <- Vectorize(tatNA)
-  ##create df from above
   SHEET11 <- SHEET1 %>%
-            dplyr::select(c(dplyr::all_of(wanted_vars))) %>%
-            dplyr::mutate(forenm = toupper(testColExtant(forenms, SHEET1))) %>%
-            dplyr::mutate(surnm = toupper(testColExtant(surnms, SHEET1))) %>%
-            dplyr::mutate(canc_type = toupper(testColExtant(canc_types, SHEET1))) %>%
-            dplyr::mutate(pri_met = toupper(testColExtant(prim_mets, SHEET1))) %>%
-            dplyr::mutate(tiss_source = toupper(testColExtant(tiss_sources, SHEET1))) %>%
-            dplyr::mutate(macrodissect = toupper(testColExtant(macrodissects, SHEET1))) %>%
-            dplyr::mutate(test_code = toupper(testColExtant(test_codes, SHEET1))) %>%
-            dplyr::mutate(date_rec = toupper(testColExtant(date_recs, SHEET1))) %>%
-            dplyr::mutate(date_rep = toupper(testColExtant(date_reps, SHEET1))) %>%
-            dplyr::filter(.data[[lab_ids]] %in% grep("/", .data[[lab_ids]], value=TRUE), !is.na(.data[[svuh_ids]])) %>%
-            tidyr::separate(., .data[[svuh_ids]], into = c("svuh_lab_id", "svuh_block_id"), sep="[[:space:]]", extra = "merge", fill = "right") %>%
-            dplyr::mutate(lab_id_upper = toupper(.data[[lab_ids]])) %>%
-            dplyr::mutate(svuh_block_id = gsub("[[:space:]]", "", svuh_block_id)) %>%
-            dplyr::mutate(svuh_block_id = replace(svuh_block_id, svuh_block_id %in% NA, "-")) %>%
-            dplyr::filter(!.data[[lab_ids]] %in% NA) %>%
-            dplyr::mutate(hosp_no = .data[[hosp_nos]]) %>%
-            dplyr::mutate(hosp_id = .data[[hosp_ids]]) %>%
-            dplyr::mutate(mut_status = .data[[mutation_statuss]]) %>%
-            dplyr::mutate(date_auth = lubridate::ymd(.data[[date_auths]])) %>%
-            dplyr::mutate(date_req = lubridate::ymd(.data[[date_reqs]])) %>%
-            dplyr::mutate(tissue_code = toupper(.data[[tissue_codes]])) %>%
-            dplyr::mutate(tissue_code = replace(tissue_code, tissue_code %in% NA, "-")) %>%
-            dplyr::mutate(tat = tatNA_v(date_auth, date_req)) %>%
-            dplyr::mutate(tat_ext = tatNA_v(date_rep, date_rec)) %>%
-            dplyr::select("Patient Forename" = forenm,
-                          "Patient Surname" = surnm,
-                          "Lab ID" = lab_id_upper,
-                          "SVUH Lab No." = svuh_lab_id,
-                          "Block ID" = svuh_block_id,
-                          "Hospital No." = hosp_no,
-                          "Hospital" = hosp_id,
-                          "Cancer Type" = canc_type,
-                          "Mutation Status" = mut_status,
-                          "Test Code" = test_code,
-                          "Primary/Met" = pri_met,
-                          "Tissue Code" = tissue_code,
-                          "Tissue Source" = tiss_source,
-                          "Macrodissected" = macrodissect,
-                          Date_Requested = date_req,
-                          Date_Ext_Rec = date_rec,
-                          Date_Ext_Rep = date_rep,
-                          Date_Authorised = date_auth,
-                          TAT = tat,
-                          TAT_ext = tat_ext) %>%
-  dplyr::mutate(Years = lubridate::year(Date_Authorised)) %>%
-  cbind(tidyr::separate(as.data.frame(x=NAME),
-                        "NAME",
-                        into = c("Gene", "YEAR"),
-                        sep="[[:space:]]",
-                        extra = "merge",
-                        fill = "right"), .) %>%
-  dplyr::mutate(Gene = gsub("SVUH", "", Gene))
+              dplyr::mutate(forenm = toupper(testColExtant(forenms, SHEET1))) %>%
+              dplyr::mutate(surnm = toupper(testColExtant(surnms, SHEET1))) %>%
+              dplyr::mutate(lab_id = toupper(testColExtant(lab_ids, SHEET1))) %>%
+              dplyr::mutate(svuh_id = toupper(testColExtant(svuh_ids, SHEET1))) %>%
+              dplyr::mutate(hosp_no = toupper(testColExtant(hosp_nos, SHEET1))) %>%
+              dplyr::mutate(hosp_id = toupper(testColExtant(hosp_ids, SHEET1))) %>%
+              dplyr::mutate(tissue_code = toupper(testColExtant(tissue_codes, SHEET1))) %>%
+              dplyr::mutate(mut_status = toupper(testColExtant(mutation_statuss, SHEET1))) %>%
+              dplyr::mutate(date_req = toupper(testColExtant(date_reqs, SHEET1))) %>%
+              dplyr::mutate(date_auth = toupper(testColExtant(date_auths, SHEET1))) %>%
+              dplyr::mutate(canc_type = toupper(testColExtant(canc_types, SHEET1))) %>%
+              dplyr::mutate(pri_met = toupper(testColExtant(prim_mets, SHEET1))) %>%
+              dplyr::mutate(tiss_source = toupper(testColExtant(tiss_sources, SHEET1))) %>%
+              dplyr::mutate(macrodissect = toupper(testColExtant(macrodissects, SHEET1))) %>%
+              dplyr::mutate(test_code = toupper(testColExtant(test_codes, SHEET1))) %>%
+              dplyr::mutate(date_rec = toupper(testColExtant(date_recs, SHEET1))) %>%
+              dplyr::mutate(date_rep = toupper(testColExtant(date_reps, SHEET1))) %>%
+              dplyr::mutate(surnm = gsub(" ", "", surnm)) %>%
+              tidyr::separate(., svuh_id, into = c("svuh_lab_id", "svuh_block_id"), sep="[[:space:]]", extra = "merge", fill = "right") %>%
+              dplyr::mutate(lab_id_upper = toupper(lab_id)) %>%
+              dplyr::mutate(svuh_block_id = gsub("[[:space:]]", "", svuh_block_id)) %>%
+              dplyr::mutate(svuh_block_id = replace(svuh_block_id, svuh_block_id %in% NA, "-")) %>%
+              dplyr::mutate(date_auth = lubridate::ymd(date_auth)) %>%
+              dplyr::mutate(date_req = lubridate::ymd(date_req)) %>%
+              dplyr::mutate(date_rec = lubridate::ymd(date_rec)) %>%
+              dplyr::mutate(date_rep = lubridate::ymd(date_rep)) %>%
+              dplyr::mutate(tissue_code = replace(tissue_code, tissue_code %in% NA, "-")) %>%
+              dplyr::mutate(tat = tatNA_v(date_auth, date_req)) %>%
+              dplyr::mutate(tat_ext = tatNA_v(date_rep, date_rec)) %>%
+              dplyr::select("Patient Forename" = forenm,
+                            "Patient Surname" = surnm,
+                            "Lab ID" = lab_id_upper,
+                            "SVUH Lab No." = svuh_lab_id,
+                            "Block ID" = svuh_block_id,
+                            "Hospital No." = hosp_no,
+                            "Hospital" = hosp_id,
+                            "Cancer Type" = canc_type,
+                            "Mutation Status" = mut_status,
+                            "Test Code" = test_code,
+                            "Primary/Met" = pri_met,
+                            "Tissue Code" = tissue_code,
+                            "Tissue Source" = tiss_source,
+                            "Macrodissected" = macrodissect,
+                            Date_Requested = date_req,
+                            Date_Ext_Rec = date_rec,
+                            Date_Ext_Rep = date_rep,
+                            Date_Authorised = date_auth,
+                            TAT = tat,
+                            TAT_ext = tat_ext) %>%
+    dplyr::filter(!.[[1]] %in% NA & !.[[2]] %in% NA & !.[[4]] %in% NA & !.[[6]] %in% NA & !.[[9]] %in% NA) %>%
+    dplyr::mutate(Years = lubridate::year(Date_Authorised)) %>%
+    cbind(tidyr::separate(as.data.frame(x=NAME),
+                          "NAME",
+                          into = c("Gene", "YEAR"),
+                          sep="[[:space:]]",
+                          extra = "merge",
+                          fill = "right"), .) %>%
+    dplyr::mutate(Gene = gsub("SVUH", "", Gene))
 
-  ##add Year and reorder factors for all variables
-  SHEET11[,"Years"] <- rep(names(rev(sort(table(SHEET11[,"Years"], useNA="no")))[1]), dim(SHEET11)[1])
-  tibble::as_tibble(SHEET11) %>% dplyr::select(Gene, Year=Years, everything()) %>% dplyr::select(-YEAR)
+    ##add Year and reorder factors for all variables
+    SHEET11[,"Years"] <- rep(names(rev(sort(table(SHEET11[,"Years"], useNA="no")))[1]), dim(SHEET11)[1])
+    tibble::as_tibble(SHEET11) %>% dplyr::select(Gene, Year=Years, everything()) %>% dplyr::select(-YEAR)
 }
-
-# #' General Externals for data structures incoming
-# #' ensures that data is formatted correctly
-# #' @return a Tibble object
-# #' @rdname parseExternal
-# #' @importFrom magrittr '%>%'
-# #' @export
-#
-# parseExternal <- function(SHEET, NAME){
-#   SHEET1 <- SHEET
-#   colnames(SHEET1) <- toupper(colnames(SHEET1))
-#   forenm <- grep("SURNAME", grep("NAME", grep("Patient", colnames(SHEET1), value=TRUE), value = TRUE), invert=TRUE, value=TRUE)
-#   surnm <- grep("SURNAME", grep("NAME", grep("Patient", colnames(SHEET1), value=TRUE), value = TRUE), invert=FALSE, value=TRUE)
-#   svuh_id <- grep("SVUH LAB", colnames(SHEET1), value=TRUE)
-#   hosp_no <- grep("NO", grep("HOSP", colnames(SHEET1), value=TRUE), value=TRUE)
-#   test_code <- grep("TEST", colnames(SHEET1), value=TRUE)
-#   mutation_status <- grep("RES", colnames(SHEET1), value=TRUE)
-#   tissue_code <- grep("TISSUE CODE", colnames(SHEET1), value=TRUE)
-#   date_reqs <- grep("DATE REQ", colnames(SHEET1), value=TRUE)
-#
-#   date_auths <- grep("DATE AUTH", colnames(SHEET1), value=TRUE)
-#   wanted_vars <- c(svuh_id, hosp_no, test_code, tissue_code, mutation_status, date_reqs, date_recs, date_reps, date_auths)
-#
-#   print("parseExternal")
-#   print(head(SHEET1))
-#
-#   SHEET11 <- SHEET1 %>%
-#             dplyr::mutate(lab_id = "-",
-#                           hosp_id = "SVUH",
-#                           canc_type = "-",
-#                           macrodissect = "-",
-#                           tiss_source = "-",
-#                           pri_mets = "-",
-#                           TAT = NA,
-#                           TAT_ext = NA) %>%
-#             dplyr::mutate(forename = toupper(testColExtant(forenm, SHEET1))) %>%
-#             dplyr::mutate(surname = toupper(testColExtant(surnm, SHEET1))) %>%
-#             dplyr::select(c(all_of(wanted_vars), lab_id, hosp_id, canc_type, macrodissect, tiss_source, pri_mets)) %>%
-#             tidyr::separate(., .data[[svuh_id]], into = c("svuh_lab_id", "svuh_block_id"), sep="[[:space:]]", extra = "merge", fill = "right") %>%
-#             dplyr::mutate(svuh_block_id = gsub("[[:space:]]", "", svuh_block_id)) %>%
-#             dplyr::mutate(svuh_block_id = replace(svuh_block_id, svuh_block_id %in% NA, "-")) %>%
-#             dplyr::mutate(mut_status = .data[[mutation_status]]) %>%
-#             dplyr::mutate(date_rec = lubridate::ymd(.data[[date_recs]])) %>%
-#             dplyr::mutate(date_rep = lubridate::ymd(.data[[date_reps]])) %>%
-#             dplyr::mutate(date_auth = lubridate::ymd(.data[[date_auths]])) %>%
-#             dplyr::mutate(date_req = lubridate::ymd(.data[[date_reqs]])) %>%
-#             dplyr::mutate(tissue_code = toupper(.data[[tissue_code]])) %>%
-#             dplyr::mutate(tissue_code = replace(tissue_code, tissue_code %in% NA, "-")) %>%
-#             dplyr::mutate(canc_type = replace(canc_type, canc_type %in% NA, "-")) %>%
-#             dplyr::mutate(TAT = as.numeric(date_auth - date_req)) %>%
-#             dplyr::mutate(TAT_ext = as.numeric(date_rep - date_rec)) %>%
-#             dplyr::select("Patient Forename" = forename,
-#                           "Patient Surname" = surname,
-#                           "Lab ID" = lab_id,
-#                           "SVUH Lab No." = svuh_lab_id,
-#                           "Block ID" = svuh_block_id,
-#                           "Hospital No." = hosp_no,
-#                           "Hospital" = hosp_id,
-#                           "Cancer Type" = canc_type,
-#                           "Mutation Status" = mut_status,
-#                           "Test Code" = test_code,
-#                           "Primary/Met" = pri_mets,
-#                           "Tissue Code" = tissue_code,
-#                           "Tissue Source" = tiss_source,
-#                           "Macrodissected" = macrodissect,
-#                           Date_Requested = date_req,
-#                           Date_Ext_Rec = date_rec,
-#                           Date_Ext_Rep = date_rep,
-#                           Date_Authorised = date_auth,
-#                           TAT, TAT_ext) %>%
-#   dplyr::mutate(Years = lubridate::year(Date_Authorised)) %>%
-#   cbind(tidyr::separate(as.data.frame(x=NAME), "NAME", into = c("Gene", "YEAR"), sep="[[:space:]]", extra = "merge", fill = "right"), .) %>%
-#   dplyr::mutate(Gene = gsub("SVUH", "", Gene))
-#
-#   print(head(SHEET11))
-#
-#   ##add Year and reorder factors for all variables
-#   SHEET11[,"Years"] <- rep(names(rev(sort(table(SHEET11[,"Years"], useNA="no")))[1]), dim(SHEET11)[1])
-#   tibble::as_tibble(SHEET11) %>% dplyr::select(Gene, Year=Years, everything()) %>% dplyr::select(-YEAR)
-# }
 
 #' Parse mutation status into correct format
 #' ensures that data is formatted correctly
@@ -492,28 +418,15 @@ renameParse <- function(INPUT){
 #' @importFrom magrittr '%>%'
 #' @export
 
-inputData <- function(INPUT){
+parse_input <- function(INPUT){
 
   ##XLSX
   if(length(grep(".xlsx$", INPUT$FILENAMES$datapath[1]) > 0)){
 
-    shiny::showModal(modalDialog("Reading XLSX input, please wait.\n", footer=NULL))
+    shiny::showModal(modalDialog("Reading XLSX input, please wait.\n", footer = NULL))
 
-    tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
-      sheetList <- read_sheets_to_list(f)
-      nsheetList <- names(sheetList)
-      lapply(nsheetList, function(ff){
-        toMatch <- c()
-        if(length(grep("KRAS |BRAF |NRAS |EGFR |EXTERNAL", ff)) > 0){
-          print(ff)
-          print(head(sheetList[[ff]]))
-          return(parseGeneral(SHEET = sheetList[[ff]], NAME = ff))
-        }
-      })
-    })
-    vals_tib <- do.call(dplyr::bind_rows, tibList)
-    data_out <- renameParse(vals_tib) %>%
-                dplyr::distinct()
+    data_out <- input_from_xlsx(INPUT)
+    shiny::removeModal()
 
     return(data_out)
   }
@@ -521,7 +434,7 @@ inputData <- function(INPUT){
   ##RDS
   if(length(grep(".rds$", INPUT$FILENAMES$datapath[1]) > 0)){
 
-    shiny::showModal(modalDialog("Reading RDS input, please wait.\n", footer=NULL))
+    shiny::showModal(modalDialog("Reading RDS input, please wait.\n", footer = NULL))
 
     tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
       readRDS(f)
@@ -529,6 +442,7 @@ inputData <- function(INPUT){
     vals_tib <- do.call(dplyr::bind_rows, tibList)
     data_out <- renameParse(vals_tib) %>%
                  dplyr::distinct()
+    shiny::removeModal()
 
     return(data_out)
   }
@@ -560,4 +474,29 @@ read_sheets_to_list <- function(FILENAME) {
     })
     names(sheetsList) <- sheets
     return(sheetsList)
+}
+
+#' Input from XLSX
+#' @param INPUT object with FILENAMES$datapath
+#' @return data.frame of input
+#' @rdname input_from_xlsx
+#' @importFrom magrittr '%>%'
+#' @export
+
+input_from_xlsx <- function(INPUT){
+
+  tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
+    sheetList <- read_sheets_to_list(f)
+    nsheetList <- names(sheetList)
+    lapply(nsheetList, function(ff){
+      toMatch <- c()
+      if(length(grep("KRAS |BRAF |NRAS |EGFR |EXTERNAL", toupper(ff))) > 0){
+        return(parseGeneral(SHEET = sheetList[[ff]], NAME = ff))
+      }
+    })
+  })
+  vals_tib <- do.call(dplyr::bind_rows, tibList)
+  data_out <- renameParse(vals_tib) %>%
+              dplyr::distinct()
+  return(data_out)
 }
