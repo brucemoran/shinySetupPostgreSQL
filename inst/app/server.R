@@ -35,10 +35,50 @@ function(input, output, session) {
       connection_change(input)
   })
 
-  ## * take file inputs --------------------------------------------------------
+  ## * load table that already exists ------------------------------------------
 
   vals_data <- shiny::reactiveValues()
   con <- shiny::reactiveValues()
+
+  shiny::observeEvent(input$load_table, {
+
+    print(input)
+    con$current <- DBI::dbConnect(drv = eval(parse(text = input$con_drv)),
+                          host = input$con_host,
+                          port = input$con_port,
+                          dbname = input$con_dbname,
+                          user = input$username,
+                          password = input$password)
+
+    con$extantable <- DBI::dbExistsTable(con$current,
+                                         input$con_newtable)
+
+    con$data_dir <- DBI::dbGetQuery(conn = con$current,
+                                    statement = "SHOW data_directory;")
+    print(con$extantable)
+    print(con$data_dir)
+
+    ## table read and can be displayed/saved if new data is not to be appended
+    vpd <- dplyr::tbl(con$current, input$con_newtable)
+    col_vpd <- dplyr::collect(vpd)
+    head(vpd)
+    head(col_vpd)
+
+    vals_data$Data <- renameParse(col_vpd)
+
+    if(dim(vals_data$Data)[1]>0){
+      shinyalert::shinyalert(paste0(input$con_newtable, " has loaded"),
+                            type = "success",
+                            showConfirmButton = TRUE)
+    } else {
+      shinyalert::shinyalert(paste0(input$con_newtable, " did not load"),
+                            type = "error",
+                            showConfirmButton = TRUE)
+    }
+
+  })
+
+  ## * take file inputs --------------------------------------------------------
 
   shiny::observeEvent(input$FILENAMES, {
     con$current <- DBI::dbConnect(drv = eval(parse(text = input$con_drv)),
@@ -51,19 +91,25 @@ function(input, output, session) {
     con$extantable <- DBI::dbExistsTable(con$current,
                                          input$con_newtable)
 
+    con$data_dir <- DBI::dbGetQuery(conn = con$current,
+                                    statement = "SHOW data_directory;")
+    print(con$data_dir)
+
     ## * append or create table ------------------------------------------------
 
     if(con$extantable){
+
+      ## table read and can be displayed/saved if new data is not to be appended
+      vpd <- dplyr::tbl(con$current, input$con_newtable)
+      col_vpd <- dplyr::collect(vpd)
+      vals_data$Data <- renameParse(col_vpd)
+      head(vals_data$Data)
 
       newtable_exists(input)
 
       shiny::observeEvent(input$go_askdata, {
 
         shiny::removeModal()
-
-        vpd <- dplyr::tbl(con$current, input$con_newtable)
-        col_vpd <- dplyr::collect(vpd)
-        vals_data$Data <- renameParse(col_vpd)
 
         vals_new <- parse_input(input)
 
@@ -93,9 +139,30 @@ function(input, output, session) {
   })
 
   ## * output tables -----------------------------------------------------------
+
   shiny::observeEvent(input$show_table, {
     output$maintable <- DT::renderDataTable({
         render_simple_maintable(input, vals_data$Data)
     })
   })
+
+  shiny::observeEvent(input$save_rds, {
+
+    saving_to(input)
+
+    shiny::observeEvent(input$go_rds, {
+
+      print("Saving")
+      shiny::removeModal()
+      save_file <- paste0(con$data_dir, "/", input$con_newtable, ".", Sys.Date(), ".rds")
+
+      saveRDS(object = vals_data$Data,
+              file = save_file)
+
+      shinyalert::shinyalert("Data Saved",
+                             type = "success",
+                             showConfirmButton = TRUE)
+      })
+    })
+
 }

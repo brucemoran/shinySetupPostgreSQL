@@ -13,8 +13,8 @@ validate_user_nt <- function(INPUT) {
             textInput(paste0("con_drv", INPUT$user_cred), "Driver", value = "DBI::dbDriver('PostgreSQL')"),
             textInput(paste0("con_host", INPUT$user_cred), "Host", value = "localhost"),
             textInput(paste0("con_port", INPUT$user_cred), "Port", value = 5432),
-            textInput(paste0("con_dbname", INPUT$user_cred), "Database Name", placeholder = ""),
-            textInput(paste0("con_newtable", INPUT$user_cred), "New Table Name", placeholder = ""),
+            textInput(paste0("con_dbname", INPUT$user_cred), "Database Name", value = "postgres"),
+            textInput(paste0("con_newtable", INPUT$user_cred), "Table Name", placeholder = ""),
             actionButton("userpass", "Login"),
             actionButton("disconnex", "Disconnect"),
             footer = NULL)
@@ -136,6 +136,7 @@ tell_about_load <- function() {
                 footer = NULL)
   )
 }
+
 #' Opens modal (text-box for input) to ask if save should go ahead
 #' @return a modal object
 #' @rdname sure_to_save
@@ -147,6 +148,23 @@ sure_to_save <- function(INPUT) {
       title = "Are you sure? Saving overwrites previous data",
       easyClose = FALSE,
       actionButton(inputId = "go_save", label = "Ok"),
+      modalButton("Cancel"),
+      footer = NULL
+    )
+  )
+}
+
+#' Opens modal telling save location
+#' @return a modal object
+#' @rdname saving_to
+#' @export
+
+saving_to <- function(INPUT) {
+  showModal(
+    modalDialog(
+      title = paste0("Saving data to: ", INPUT$con_newtable, ".", Sys.Date(), ".rds"),
+      easyClose = FALSE,
+      actionButton(inputId = "go_rds", label = "Ok"),
       modalButton("Cancel"),
       footer = NULL
     )
