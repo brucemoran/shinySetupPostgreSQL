@@ -3,7 +3,6 @@
 #' Opens modal (text-box for input) to ask for user credentials
 #' @return a modal object
 #' @rdname validate_user
-#' @import RPostgreSQL
 #' @export
 
 validate_user_nt <- function(INPUT) {
@@ -14,7 +13,7 @@ validate_user_nt <- function(INPUT) {
             textInput(paste0("con_host", INPUT$user_cred), "Host", value = "localhost"),
             textInput(paste0("con_port", INPUT$user_cred), "Port", value = 5432),
             textInput(paste0("con_dbname", INPUT$user_cred), "Database Name", value = "postgres"),
-            textInput(paste0("con_newtable", INPUT$user_cred), "Table Name", placeholder = ""),
+            textInput(paste0("con_newtable", INPUT$user_cred), "Table Name", value = "svuh_mol_rep_15_21"),
             actionButton("userpass", "Login"),
             actionButton("disconnex", "Disconnect"),
             footer = NULL)
@@ -24,6 +23,7 @@ validate_user_nt <- function(INPUT) {
 #' Test connection to Postgresql, handle success and error
 #' @return a modal object
 #' @rdname test_db_con
+#' @import RPostgreSQL
 #' @export
 
 test_db_con <- function(INPUT) {
@@ -72,6 +72,7 @@ newtable_exists <- function(INPUT) {
 #' Disconnection from Postgresql
 #' @return a modal object
 #' @rdname disc_db_con
+#' @import RPostgreSQL
 #' @export
 
 disc_db_con <- function(INPUT) {
@@ -83,7 +84,7 @@ disc_db_con <- function(INPUT) {
   }
   shinyalert::shinyalert("Disconnected",
                          type = "success",
-                         showConfirmButton = TRUE)
+                         showConfirmButton = FALSE)
   shiny::stopApp(returnValue = invisible())
 }
 
@@ -138,20 +139,32 @@ tell_about_load <- function() {
 }
 
 #' Opens modal (text-box for input) to ask if save should go ahead
+#' @param INPUT object
+#' @param CON connection to db
+#' @param VALS_DATA data object
 #' @return a modal object
 #' @rdname sure_to_save
 #' @export
 
-sure_to_save <- function(INPUT) {
+sure_to_save <- function(INPUT, CON, VALS_DATA) {
   showModal(
     modalDialog(
-      title = "Are you sure? Saving overwrites previous data",
+      title = "Save current table? Saving overwrites previous data",
       easyClose = FALSE,
       actionButton(inputId = "go_save", label = "Ok"),
       modalButton("Cancel"),
       footer = NULL
     )
   )
+
+  shiny::observeEvent(INPUT$go_save, {
+    dplyr::copy_to(dest = CON$current,
+                   df = VALS_DATA,
+                   name = INPUT$con_newtable,
+                   temporary = FALSE,
+                   overwrite = TRUE)
+    shiny::removeModal()
+  })
 }
 
 #' Opens modal telling save location
@@ -168,5 +181,90 @@ saving_to <- function(INPUT) {
       modalButton("Cancel"),
       footer = NULL
     )
+  )
+}
+
+
+#' Opens modal (text-box for input) to ask for name of new column
+#' @return a modal object
+#' @rdname add_column
+#' @export
+
+add_column <- function(INPUT) {
+  showModal(modalDialog(title = "Enter new column name",
+            textInput(inputId = "new_col", "Column Name", placeholder = ""),
+            actionButton("ins_col", "Add"),
+            modalButton("Cancel"),
+            footer = NULL)
+  )
+}
+
+#' Opens modal (dropdowns for input) to ask for orders of columns
+#' @param VALS_DATA named list of colnames of data
+#' @return a modal object
+#' @rdname order_column
+#' @export
+
+order_column <- function(VALS_DATA) {
+  colns <- colnames(VALS_DATA)
+  choices_list <- as.list(colns)
+  names(choices_list) <- colns
+
+  showModal(modalDialog(title = "Select new column order",
+            lapply(1:length(colns), function(f) {
+              shiny::selectInput(inputId = paste0("column_", f),
+                                 label = paste0("Column ", f),
+                                 choices = choices_list,
+                                 selected = choices_list[[f]])
+            }),
+            actionButton("arr_col", "Reorder"),
+            modalButton("Cancel"),
+            footer = NULL)
+  )
+}
+
+#' Opens modal to ask for columns to delete (only those without data available)
+#' @param VALS_DATA vals_data object
+#' @return a modal object
+#' @rdname delete_column
+#' @export
+
+delete_column <- function(VALS_DATA) {
+  colns <- colnames(VALS_DATA)
+  choices_list <- as.list(colns)
+  names(choices_list) <- colns
+
+  showModal(modalDialog(title = "Select column to delete",
+            shiny::selectInput(inputId = "col_to_del",
+                               label = NULL,
+                               choices = choices_list,
+                               selected = NULL),
+            actionButton("col_del", "Delete"),
+            modalButton("Cancel"),
+            footer = NULL)
+  )
+}
+
+#' Opens modal (dropdowns for input) to ask for columns to display uniqly in table
+#' @param VALS_DATA named list of colnames of data
+#' @return a modal object
+#' @rdname uniq_columns
+#' @export
+
+uniq_columns <- function(VALS_DATA) {
+  colns <- colnames(VALS_DATA)
+  choices_list <- as.list(colns)
+  names(choices_list) <- colns
+
+  showModal(modalDialog(title = "Select Columns to Display Unique Contents",
+            lapply(1:length(colns), function(f) {
+              shiny::selectInput(inputId = paste0("ucolumn_", f),
+                                 label = choices_list[[f]],
+                                 choices = c("Yes", "No"),
+                                 selected = "Yes")
+            }),
+            actionButton("uniq_col", "Uniquify"),
+            modalButton("Cancel"),
+            footer = NULL)
   )
 }

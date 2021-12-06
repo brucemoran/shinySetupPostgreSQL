@@ -4,7 +4,14 @@
 \alias{sure_to_save}
 \title{Opens modal (text-box for input) to ask if save should go ahead}
 \usage{
-sure_to_save(INPUT)
+sure_to_save(INPUT, CON, VALS_DATA)
+}
+\arguments{
+\item{INPUT}{object}
+
+\item{CON}{connection to db}
+
+\item{VALS_DATA}{data object}
 }
 \value{
 a modal object

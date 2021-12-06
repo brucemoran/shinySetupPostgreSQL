@@ -1,70 +1,67 @@
 # server.R
 
-##based on https://github.com/jienagu/DT-Editor
-library(magrittr)
-library(RPostgreSQL)
-source("../../R/parsing.R")
-source("../../R/modals.R")
-source("../../R/reactive_observe.R")
-
 function(input, output, session) {
 
   ## * log in to database ------------------------------------------------------
 
   ## check credentials exist for Postgresql database, else exit
 
-  shiny::observe(validate_user_nt(input))
+  shiny::observe(
+    shinySetupPostgreSQL::validate_user_nt(input)
+  )
 
-  ## test connection to ensure user and connection OK
+  ## test connection to ensure user and connection OK, and connect
+
+  con <- shiny::reactiveValues()
 
   shiny::observeEvent(input$userpass, {
-      test_db_con(input)
+
+      shinySetupPostgreSQL::test_db_con(input)
       shiny::removeModal()
+
+      con$current <- DBI::dbConnect(drv = eval(parse(text = input$con_drv)),
+                            host = input$con_host,
+                            port = input$con_port,
+                            dbname = input$con_dbname,
+                            user = input$username,
+                            password = input$password)
+
+      extantable <- DBI::dbExistsTable(con$current,
+                                           input$con_newtable)
+      if(extantable){
+        con$extantable <- 1
+      }
+
+      con$data_dir <- DBI::dbGetQuery(conn = con$current,
+                                      statement = "SHOW data_directory;")
   })
 
   ## allow disconnect as too many open connections (16+)
   ## results in inability to connect!
 
   shiny::observeEvent(input$disconnex, {
-      disc_db_con(input)
+
+      shinySetupPostgreSQL::disc_db_con(input)
+
   })
 
   ## allow changing of credentials for database
 
   shiny::observeEvent(input$db_conxn, {
-      connection_change(input)
+
+      shinySetupPostgreSQL::connection_change(input)
+
   })
 
   ## * load table that already exists ------------------------------------------
 
   vals_data <- shiny::reactiveValues()
-  con <- shiny::reactiveValues()
 
-  shiny::observeEvent(input$load_table, {
-
-    print(input)
-    con$current <- DBI::dbConnect(drv = eval(parse(text = input$con_drv)),
-                          host = input$con_host,
-                          port = input$con_port,
-                          dbname = input$con_dbname,
-                          user = input$username,
-                          password = input$password)
-
-    con$extantable <- DBI::dbExistsTable(con$current,
-                                         input$con_newtable)
-
-    con$data_dir <- DBI::dbGetQuery(conn = con$current,
-                                    statement = "SHOW data_directory;")
-    print(con$extantable)
-    print(con$data_dir)
+  shiny::observeEvent(con$extantable, ignoreInit=TRUE, {
 
     ## table read and can be displayed/saved if new data is not to be appended
     vpd <- dplyr::tbl(con$current, input$con_newtable)
-    col_vpd <- dplyr::collect(vpd)
-    head(vpd)
-    head(col_vpd)
-
-    vals_data$Data <- renameParse(col_vpd)
+    vals_data$Data <- dplyr::collect(vpd)
 
     if(dim(vals_data$Data)[1]>0){
       shinyalert::shinyalert(paste0(input$con_newtable, " has loaded"),
@@ -75,57 +72,19 @@ function(input, output, session) {
                             type = "error",
                             showConfirmButton = TRUE)
     }
-
   })
 
   ## * take file inputs --------------------------------------------------------
 
-  shiny::observeEvent(input$FILENAMES, {
-    con$current <- DBI::dbConnect(drv = eval(parse(text = input$con_drv)),
-                          host = input$con_host,
-                          port = input$con_port,
-                          dbname = input$con_dbname,
-                          user = input$username,
-                          password = input$password)
-
-    con$extantable <- DBI::dbExistsTable(con$current,
-                                         input$con_newtable)
-
-    con$data_dir <- DBI::dbGetQuery(conn = con$current,
-                                    statement = "SHOW data_directory;")
-    print(con$data_dir)
+  shiny::observeEvent(input$FILENAMES, ignoreInit=TRUE, {
 
     ## * append or create table ------------------------------------------------
 
-    if(con$extantable){
-
-      ## table read and can be displayed/saved if new data is not to be appended
-      vpd <- dplyr::tbl(con$current, input$con_newtable)
-      col_vpd <- dplyr::collect(vpd)
-      vals_data$Data <- renameParse(col_vpd)
-      head(vals_data$Data)
-
-      newtable_exists(input)
-
-      shiny::observeEvent(input$go_askdata, {
-
-        shiny::removeModal()
-
-        vals_new <- parse_input(input)
-
-        vals_data$Data <<- rbind(vals_data$Data, vals_new)
-
-        dplyr::copy_to(dest = con$current,
-                       df = vals_data$Data,
-                       name = input$con_newtable,
-                       temporary = FALSE,
-                       overwrite = TRUE)
-      })
-
-    } else {
+    if(is.null(con$extantable)){
 
       vals_data$Data <- parse_input(input)
-      tell_about_load()
+
+      shinySetupPostgreSQL::tell_about_load()
 
       shiny::observeEvent(input$go_datared, {
 
@@ -135,24 +94,121 @@ function(input, output, session) {
                            name =  input$con_newtable,
                            fields = vals_data$Data)
       })
+
+    } else {
+
+      shinySetupPostgreSQL::newtable_exists(input)
+
+      shiny::observeEvent(input$go_askdata, ignoreInit=TRUE, {
+
+        shiny::removeModal()
+
+        vals_new <- shinySetupPostgreSQL::parse_input(input)
+
+        vals_data$Data <<- rbind(vals_data$Data, vals_new)
+
+        dplyr::copy_to(dest = con$current,
+                       df = vals_data$Data,
+                       name = input$con_newtable,
+                       temporary = FALSE,
+                       overwrite = TRUE)
+      })
     }
+  })
+
+  ## * save current table ------------------------------------------------------
+
+  shiny::observeEvent(input$save_tab, ignoreInit=TRUE, {
+
+    shinySetupPostgreSQL::sure_to_save(input, con, vals_data)
+
+  })
+
+  ## * add columns to table ----------------------------------------------------
+
+  shiny::observeEvent(input$add_col, ignoreInit=TRUE, {
+
+    shinySetupPostgreSQL::add_column(input)
+
+    shiny::observeEvent(input$ins_col, ignoreInit=TRUE, {
+      if(input$new_col %in% colnames(vals_data$Data)){
+        shiny::removeModal()
+        shinyalert::shinyalert("Column Already Exists",
+                               type = "error",
+                               showConfirmButton = TRUE)
+      } else {
+        shiny::observeEvent(input$ins_col, ignoreInit=TRUE, {
+
+          shiny::removeModal()
+          vals_data$Data <- tibble::add_column(.data = vals_data$Data,
+                                               !!input$new_col := NA)
+        })
+      }
+    })
+  })
+
+  ## * remove empty columns from table -----------------------------------------
+
+  shiny::observeEvent(input$del_col, ignoreInit=TRUE, {
+
+    shinySetupPostgreSQL::delete_column(vals_data$Data)
+
+    shiny::observeEvent(input$col_del, ignoreInit=TRUE, {
+
+      check_empty <- unique(unlist(vals_data$Data[[input$col_to_del]]))
+
+      if(!is.na(check_empty)){
+
+        shiny::removeModal()
+        shinyalert::shinyalert("Column to be Deleted is not empty",
+                               type = "error",
+                               showConfirmButton = TRUE)
+      } else {
+
+        shiny::removeModal()
+        vals_data$Data <- dplyr::select(.data = vals_data$Data, -!!input$col_to_del)
+        shinyalert::shinyalert("Column Deleted",
+                               type = "success",
+                               showConfirmButton = TRUE)
+
+      }
+    })
+  })
+
+  ## * reorder columns in table ------------------------------------------------
+
+  shiny::observeEvent(input$ord_col, ignoreInit=TRUE, {
+
+    shinySetupPostgreSQL::order_column(vals_data$Data)
+
+    shiny::observeEvent(input$arr_col, ignoreInit=TRUE, {
+      reorder_cols <- unlist(lapply(seq_along(colnames(vals_data$Data)), function(f){
+        colnf <- paste0("column_", f)
+        return(input[[colnf]])
+      }))
+      shiny::removeModal()
+      vals_data$Data <- dplyr::select(.data = vals_data$Data, !!reorder_cols)
+
+    })
   })
 
   ## * output tables -----------------------------------------------------------
 
-  shiny::observeEvent(input$show_table, {
-    output$maintable <- DT::renderDataTable({
-        render_simple_maintable(input, vals_data$Data)
+  shiny::observeEvent(input$show_tab, ignoreInit=TRUE, {
+    output$maintable1 <- DT::renderDataTable({
+        shinySetupPostgreSQL::render_simple_maintable(vals_data$Data)
+    })
+    output$maintable2 <- DT::renderDataTable({
+        shinySetupPostgreSQL::render_simple_maintable(vals_data$Data)
     })
   })
 
-  shiny::observeEvent(input$save_rds, {
+  shiny::observeEvent(input$save_rds, ignoreInit=TRUE, {
 
-    saving_to(input)
+    shinySetupPostgreSQL::saving_to(input)
 
     shiny::observeEvent(input$go_rds, {
 
-      print("Saving")
       shiny::removeModal()
       save_file <- paste0(con$data_dir, "/", input$con_newtable, ".", Sys.Date(), ".rds")
 
@@ -165,4 +221,43 @@ function(input, output, session) {
       })
     })
 
+    ## * unique values of each column selected ---------------------------------
+
+    shiny::observeEvent(input$uni_col, ignoreInit=TRUE, {
+
+      shinySetupPostgreSQL::uniq_columns(vals_data$Data)
+
+      shiny::observeEvent(input$uniq_col, ignoreInit=TRUE, {
+
+        ##vector of yes or no
+        uniq_col <- unlist(lapply(seq_along(colnames(vals_data$Data)), function(f){
+          if(input[[paste0("ucolumn_", f)]] == "Yes"){
+            return(f)
+          }
+        }))
+
+        shiny::removeModal()
+
+        vals_data$Uniq <- render_unique_maintable(vals_data$Data[,uniq_col])
+        output$uniqtable <- DT::renderDataTable({
+          vals_data$Uniq
+        })
+
+        output$download_uniq <- shiny::downloadHandler(
+          filename <- function() {
+            paste0(con$data_dir, "/", input$con_newtable, ".uniq.", Sys.Date(), ".csv")
+          },
+          content <- function(con) {
+            write.csv(vals_data$Uniq, con)
+          }
+        )
+      })
+    })
+
+    ## * disconnect from db on session end -------------------------------------
+    session$onSessionEnded(function() {
+      shiny::observe(
+        shinySetupPostgreSQL::disc_db_con(input)
+      )
+    })
 }

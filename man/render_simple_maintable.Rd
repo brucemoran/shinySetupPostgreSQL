@@ -5,7 +5,7 @@
 \title{DT:renderDataTable filtering
 The resulting output should be caught by output$maintable}
 \usage{
-render_simple_maintable(INPUT, DATAER)
+render_simple_maintable(DATAER)
 }
 \value{
 a DataTable object
