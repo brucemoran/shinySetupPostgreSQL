@@ -82,7 +82,7 @@ function(input, output, session) {
 
     if(is.null(con$extantable)){
 
-      vals_data$Data <- parse_input(input)
+      vals_data$Data <- shinySetupPostgreSQL::parse_input(input)
 
       shinySetupPostgreSQL::tell_about_load()
 
@@ -93,6 +93,12 @@ function(input, output, session) {
         DBI::dbCreateTable(conn = con$current,
                            name =  input$con_newtable,
                            fields = vals_data$Data)
+
+        dplyr::copy_to(dest = con$current,
+                      df = vals_data$Data,
+                      name = input$con_newtable,
+                      temporary = FALSE,
+                      overwrite = TRUE)
       })
 
     } else {
@@ -238,7 +244,7 @@ function(input, output, session) {
 
         shiny::removeModal()
 
-        vals_data$Uniq <- render_unique_maintable(vals_data$Data[,uniq_col])
+        vals_data$Uniq <- shinySetupPostgreSQL::render_unique_maintable(vals_data$Data[,uniq_col])
         output$uniqtable <- DT::renderDataTable({
           vals_data$Uniq
         })

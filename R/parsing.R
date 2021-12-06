@@ -29,13 +29,13 @@ grepSpec <- function(INVEC, TERMS, INVERTS){
 #'
 #' @param COLNM a column name
 #' @return a vector from a column
-#' @rdname testColextant
+#' @rdname colExtant
 #' @export
 
-testColExtant <- function(COLNM, SHEET){
+colExtant <- function(COLNM, SHEET){
   if(length(unique(COLNM))!=0){
     if(!is.na(COLNM)){
-      SHEET[[COLNM]]
+      toupper(SHEET[[COLNM]])
     }
     else{NA}
   }
@@ -141,33 +141,43 @@ parseGeneral <- function(SHEET, NAME){
   ##no lab_ids in EXTERNALS...
   tatNA_v <- Vectorize(tatNA)
   SHEET11 <- SHEET1 %>%
-              dplyr::mutate(forenm = toupper(testColExtant(forenms, SHEET1))) %>%
-              dplyr::mutate(surnm = toupper(testColExtant(surnms, SHEET1))) %>%
-              dplyr::mutate(lab_id = toupper(testColExtant(lab_ids, SHEET1))) %>%
-              dplyr::mutate(svuh_id = toupper(testColExtant(svuh_ids, SHEET1))) %>%
-              dplyr::mutate(hosp_no = toupper(testColExtant(hosp_nos, SHEET1))) %>%
-              dplyr::mutate(hosp_id = toupper(testColExtant(hosp_ids, SHEET1))) %>%
-              dplyr::mutate(tissue_code = toupper(testColExtant(tissue_codes, SHEET1))) %>%
-              dplyr::mutate(mut_status = toupper(testColExtant(mutation_statuss, SHEET1))) %>%
-              dplyr::mutate(date_req = toupper(testColExtant(date_reqs, SHEET1))) %>%
-              dplyr::mutate(date_auth = toupper(testColExtant(date_auths, SHEET1))) %>%
-              dplyr::mutate(canc_type = toupper(testColExtant(canc_types, SHEET1))) %>%
-              dplyr::mutate(pri_met = toupper(testColExtant(prim_mets, SHEET1))) %>%
-              dplyr::mutate(tiss_source = toupper(testColExtant(tiss_sources, SHEET1))) %>%
-              dplyr::mutate(macrodissect = toupper(testColExtant(macrodissects, SHEET1))) %>%
-              dplyr::mutate(test_code = toupper(testColExtant(test_codes, SHEET1))) %>%
-              dplyr::mutate(date_rec = toupper(testColExtant(date_recs, SHEET1))) %>%
-              dplyr::mutate(date_rep = toupper(testColExtant(date_reps, SHEET1))) %>%
+              dplyr::mutate(forenm = colExtant(forenms, SHEET1)) %>%
+              dplyr::mutate(surnm = colExtant(surnms, SHEET1)) %>%
+              dplyr::mutate(lab_id = colExtant(lab_ids, SHEET1)) %>%
+              dplyr::mutate(svuh_id = colExtant(svuh_ids, SHEET1)) %>%
+              dplyr::mutate(hosp_no = colExtant(hosp_nos, SHEET1)) %>%
+              dplyr::mutate(hosp_id = colExtant(hosp_ids, SHEET1)) %>%
+              dplyr::mutate(tissue_code = colExtant(tissue_codes, SHEET1)) %>%
+              dplyr::mutate(mut_status = colExtant(mutation_statuss, SHEET1)) %>%
+              dplyr::mutate(date_req = colExtant(date_reqs, SHEET1)) %>%
+              dplyr::mutate(date_auth = colExtant(date_auths, SHEET1)) %>%
+              dplyr::mutate(canc_type = colExtant(canc_types, SHEET1)) %>%
+              dplyr::mutate(pri_met = colExtant(prim_mets, SHEET1)) %>%
+              dplyr::mutate(tiss_source = colExtant(tiss_sources, SHEET1)) %>%
+              dplyr::mutate(macrodissect = colExtant(macrodissects, SHEET1)) %>%
+              dplyr::mutate(test_code = colExtant(test_codes, SHEET1)) %>%
+              dplyr::mutate(date_rec = colExtant(date_recs, SHEET1)) %>%
+              dplyr::mutate(date_rep = colExtant(date_reps, SHEET1)) %>%
               dplyr::mutate(surnm = gsub(" ", "", surnm)) %>%
               tidyr::separate(., svuh_id, into = c("svuh_lab_id", "svuh_block_id"), sep="[[:space:]]", extra = "merge", fill = "right") %>%
               dplyr::mutate(lab_id_upper = toupper(lab_id)) %>%
               dplyr::mutate(svuh_block_id = gsub("[[:space:]]", "", svuh_block_id)) %>%
+              dplyr::mutate(lab_id_upper = replace(lab_id_upper, lab_id_upper %in% NA, "-")) %>%
+              dplyr::mutate(svuh_lab_id = replace(svuh_lab_id, svuh_lab_id %in% NA, "-")) %>%
               dplyr::mutate(svuh_block_id = replace(svuh_block_id, svuh_block_id %in% NA, "-")) %>%
+              dplyr::mutate(hosp_id = replace(hosp_id, hosp_id %in% NA, "-")) %>%
+              dplyr::mutate(hosp_no = replace(hosp_no, hosp_no %in% NA, "-")) %>%
+              dplyr::mutate(tissue_code = replace(tissue_code, tissue_code %in% NA, "-")) %>%
+              dplyr::mutate(mut_status = replace(mut_status, mut_status %in% NA, "-")) %>%
+              dplyr::mutate(canc_type = replace(canc_type, canc_type %in% NA, "-")) %>%
+              dplyr::mutate(pri_met = replace(pri_met, pri_met %in% NA, "-")) %>%
+              dplyr::mutate(tiss_source = replace(tiss_source, tiss_source %in% NA, "-")) %>%
+              dplyr::mutate(macrodissect = replace(macrodissect, macrodissect %in% NA, "-")) %>%
+              dplyr::mutate(test_code = replace(test_code, test_code %in% NA, "-")) %>%
               dplyr::mutate(date_auth = lubridate::ymd(date_auth)) %>%
               dplyr::mutate(date_req = lubridate::ymd(date_req)) %>%
               dplyr::mutate(date_rec = lubridate::ymd(date_rec)) %>%
               dplyr::mutate(date_rep = lubridate::ymd(date_rep)) %>%
-              dplyr::mutate(tissue_code = replace(tissue_code, tissue_code %in% NA, "-")) %>%
               dplyr::mutate(tat = tatNA_v(date_auth, date_req)) %>%
               dplyr::mutate(tat_ext = tatNA_v(date_rep, date_rec)) %>%
               dplyr::mutate(Year = year_shootout(date_req, date_rec, date_rep, date_auth)) %>%
@@ -193,7 +203,7 @@ parseGeneral <- function(SHEET, NAME){
                             Date_Authorised = date_auth,
                             TAT = tat,
                             TAT_ext = tat_ext) %>%
-    dplyr::filter(!.[[2]] %in% NA & !.[[3]] %in% NA & !.[[5]] %in% NA & !.[[7]] %in% NA & !.[[10]] %in% NA)
+    dplyr::filter(!.[[2]] %in% NA & !.[[3]] %in% NA & !.[[5]] %in% "-" & !.[[7]] %in% "-" & !.[[10]] %in% "-")
 }
 
 #' Parse mutation status into correct format
