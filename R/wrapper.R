@@ -1,5 +1,5 @@
 #' Launch the app
 
 launchSSP <- function(){
-  shiny::runApp(paste0(base::system.file(package = "shinySetupPostgreSQL"), "/app"))
+  shiny::runApp(paste0(.libPaths()[1], "/shinySetupPostgreSQL/app"))
 }
