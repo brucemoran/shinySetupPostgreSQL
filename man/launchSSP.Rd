@@ -6,6 +6,9 @@
 \usage{
 launchSSP()
 }
+\value{
+launched app
+}
 \description{
 Launch the app
 }
