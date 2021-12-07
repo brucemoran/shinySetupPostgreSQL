@@ -2,7 +2,7 @@
 % Please edit documentation in R/modals.R
 \name{test_db_con}
 \alias{test_db_con}
-\title{Test connection to Postgresql, handle success and error}
+\title{Test if connection to Postgresql can be made}
 \usage{
 test_db_con(INPUT)
 }
@@ -10,5 +10,5 @@ test_db_con(INPUT)
 a modal object
 }
 \description{
-Test connection to Postgresql, handle success and error
+Test if connection to Postgresql can be made
 }

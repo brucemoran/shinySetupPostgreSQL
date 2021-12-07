@@ -20,7 +20,7 @@ validate_user_nt <- function(INPUT) {
           actionButton("disconnex", "Disconnect"),
         conditionalPanel(
           condition = "output.advanced == true",
-          textInput(paste0("con_drv", INPUT$user_cred), "Driver", value = "DBI::dbDriver('PostgreSQL')"),
+          textInput(paste0("con_drv", INPUT$user_cred), "Driver", value = "RPostgres::Postgres()"),
           textInput(paste0("con_host", INPUT$user_cred), "Host", value = "localhost"),
           textInput(paste0("con_port", INPUT$user_cred), "Port", value = 5432),
           textInput(paste0("con_dbname", INPUT$user_cred), "Database Name", value = "postgres")
@@ -30,33 +30,80 @@ validate_user_nt <- function(INPUT) {
   )
 }
 
-#' Test connection to Postgresql, handle success and error
+#' Conditionally show advanced connection options for validate_user_nt
+#' from: https://stackoverflow.com/questions/65168516
+#' @param INPUT input reactive values
+#' @rdname validate_user_cond
+#' @export
+
+validate_user_cond <- function(INPUT){
+  rv <- shiny::reactiveValues(advanced = FALSE)
+
+  shiny::observeEvent(INPUT$valadvan, {
+    rv$advanced <- !rv$advanced
+  })
+
+  advanced <- shiny::reactive({rv$advanced})
+
+  return(advanced)
+}
+
+#' Test if connection to Postgresql can be made
 #' @return a modal object
 #' @rdname test_db_con
-#' @import RPostgreSQL
+#' @import RPostgres
 #' @export
 
 test_db_con <- function(INPUT) {
 
   cancon <- DBI::dbCanConnect(drv = eval(parse(text = INPUT$con_drv)),
-                              host=INPUT$con_host,
-                              port=INPUT$con_port,
-                              dbname=INPUT$con_dbname,
-                              user=INPUT$username,
-                              password=INPUT$password)
+                              host = INPUT$con_host,
+                              port = INPUT$con_port,
+                              dbname = INPUT$con_dbname,
+                              user = INPUT$username,
+                              password = INPUT$password)
+  return(cancon)
+}
 
-  if (cancon[1] == TRUE) {
+#' Test connection to Postgresql, handle success and error
+#' @return a modal object
+#' @rdname test_db_results
+#' @import RPostgres
+#' @export
 
-    shinyalert::shinyalert("Login successful",
-                           type = "success",
-                           showConfirmButton = TRUE)
+test_db_results <- function(INPUT, CON){
 
-  } else {
-    RPostgreSQL::dbDisconnect(eval(parse(text = INPUT$con_drv)))
-    shinyalert::shinyalert("Login failed", "please try entering credentials again\nor contact Bruce Moran for access",
+  if(!CON$cancon){
+    shinyalert::shinyalert(paste0("Could not connect using specified credentials"),
                            type = "error",
                            showConfirmButton = FALSE)
-    shiny::stopApp(returnValue = invisible())
+    return(FALSE)
+
+  } else {
+
+    CON$current <- DBI::dbConnect(drv = eval(parse(text = INPUT$con_drv)),
+                          host = INPUT$con_host,
+                          port = INPUT$con_port,
+                          dbname = INPUT$con_dbname,
+                          user = INPUT$username,
+                          password = INPUT$password)
+
+    extantable <- DBI::dbExistsTable(CON$current,
+                                     INPUT$con_table)
+
+    if(extantable){
+
+      shinyalert::shinyalert("Login successful",
+                             type = "success",
+                             showConfirmButton = TRUE)
+      return(TRUE)
+    } else {
+
+      shinyalert::shinyalert(paste0("Table: ", INPUT$con_table, " does not exist"),
+                             type = "error",
+                             showConfirmButton = FALSE)
+      return(FALSE)
+     }
   }
 }
 
@@ -82,11 +129,11 @@ newtable_exists <- function(INPUT) {
 #' Disconnection from Postgresql
 #' @return a modal object
 #' @rdname disc_db_con
-#' @import RPostgreSQL
+#' @import RPostgres
 #' @export
 
 disc_db_con <- function(INPUT) {
-  print(INPUT)
+
   all_cons <- DBI::dbListConnections(eval(parse(text = INPUT$con_drv)))
 
   for(con in all_cons){

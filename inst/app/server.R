@@ -8,16 +8,7 @@ function(input, output, session) {
 
   shiny::observe( shinySetupPostgreSQL::validate_user_nt(input) )
 
-  ## conditionally show advanced connection options
-  ## from: https://stackoverflow.com/questions/65168516
-
-  rv <- shiny::reactiveValues(advanced = FALSE)
-
-  shiny::observeEvent(input$valadvan, {
-    rv$advanced <- !rv$advanced
-  })
-
-  output$advanced <- shiny::reactive({rv$advanced})
+  output$advanced <- shinySetupPostgreSQL::validate_user_cond(input)
 
   shiny::outputOptions(output, "advanced", suspendWhenHidden = FALSE)
 
@@ -27,24 +18,17 @@ function(input, output, session) {
 
   shiny::observeEvent(input$userpass, {
 
-      shinySetupPostgreSQL::test_db_con(input)
-      shiny::removeModal()
+    con$cancon <- shinySetupPostgreSQL::test_db_con(input)
 
-      con$current <- DBI::dbConnect(drv = eval(parse(text = input$con_drv)),
-                            host = input$con_host,
-                            port = input$con_port,
-                            dbname = input$con_dbname,
-                            user = input$username,
-                            password = input$password)
+    shiny::removeModal()
 
-      extantable <- DBI::dbExistsTable(con$current,
-                                       input$con_table)
-      if(extantable){
-        con$extantable <- 1
-      }
+    con$extantable <- shinySetupPostgreSQL::test_db_results(input, con)
 
+    if(con$extantable){
+      con$extantabled <- 1
       con$data_dir <- DBI::dbGetQuery(conn = con$current,
                                       statement = "SHOW data_directory;")
+    }
   })
 
   ## allow disconnect as too many open connections (16+)
@@ -62,12 +46,8 @@ function(input, output, session) {
 
     shinySetupPostgreSQL::validate_user_nt(input)
 
-    ## conditionally show advanced connection options
-    rv <- shiny::reactiveValues(advanced = FALSE)
-    shiny::observeEvent(input$valadvan, {
-      rv$advanced <- !rv$advanced
-    })
-    output$advanced <- shiny::reactive({rv$advanced})
+    output$advanced <- shinySetupPostgreSQL::validate_user_cond(input)
+
     shiny::outputOptions(output, "advanced", suspendWhenHidden = FALSE)
   })
 
@@ -75,7 +55,7 @@ function(input, output, session) {
 
   vals_data <- shiny::reactiveValues()
 
-  shiny::observeEvent(con$extantable, ignoreInit=TRUE, {
+  shiny::observeEvent(con$extantabled, ignoreInit=TRUE, {
 
     ## table read and can be displayed/saved if new data is not to be appended
     vpd <- dplyr::tbl(con$current, input$con_table)

@@ -1,6 +1,6 @@
 Package: shinySetupPostgreSQL
 Title: Read XLSX or RDS files into a PostgreSQL table using Shiny.
-Version: 0.2
+Version: 0.3
 Authors@R:
     person(given = "Bruce",
            family = "Moran",
@@ -13,6 +13,7 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports:
+    RPostgres,
     readr,
     shiny,
     dplyr,
