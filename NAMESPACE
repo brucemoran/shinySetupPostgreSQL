@@ -2,7 +2,6 @@
 
 export(add_column)
 export(colExtant)
-export(connection_change)
 export(delete_column)
 export(disc_db_con)
 export(grepSpec)

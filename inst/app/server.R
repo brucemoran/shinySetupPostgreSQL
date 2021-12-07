@@ -6,9 +6,20 @@ function(input, output, session) {
 
   ## check credentials exist for Postgresql database, else exit
 
-  shiny::observe(
-    shinySetupPostgreSQL::validate_user_nt(input)
-  )
+  shiny::observe( shinySetupPostgreSQL::validate_user_nt(input) )
+
+  ## conditionally show advanced connection options
+  ## from: https://stackoverflow.com/questions/65168516
+
+  rv <- shiny::reactiveValues(advanced = FALSE)
+
+  shiny::observeEvent(input$valadvan, {
+    rv$advanced <- !rv$advanced
+  })
+
+  output$advanced <- shiny::reactive({rv$advanced})
+
+  shiny::outputOptions(output, "advanced", suspendWhenHidden = FALSE)
 
   ## test connection to ensure user and connection OK, and connect
 
@@ -27,7 +38,7 @@ function(input, output, session) {
                             password = input$password)
 
       extantable <- DBI::dbExistsTable(con$current,
-                                           input$con_newtable)
+                                       input$con_table)
       if(extantable){
         con$extantable <- 1
       }
@@ -49,8 +60,15 @@ function(input, output, session) {
 
   shiny::observeEvent(input$db_conxn, {
 
-      shinySetupPostgreSQL::connection_change(input)
+    shinySetupPostgreSQL::validate_user_nt(input)
 
+    ## conditionally show advanced connection options
+    rv <- shiny::reactiveValues(advanced = FALSE)
+    shiny::observeEvent(input$valadvan, {
+      rv$advanced <- !rv$advanced
+    })
+    output$advanced <- shiny::reactive({rv$advanced})
+    shiny::outputOptions(output, "advanced", suspendWhenHidden = FALSE)
   })
 
   ## * load table that already exists ------------------------------------------
@@ -60,15 +78,15 @@ function(input, output, session) {
   shiny::observeEvent(con$extantable, ignoreInit=TRUE, {
 
     ## table read and can be displayed/saved if new data is not to be appended
-    vpd <- dplyr::tbl(con$current, input$con_newtable)
+    vpd <- dplyr::tbl(con$current, input$con_table)
     vals_data$Data <- dplyr::collect(vpd)
 
     if(dim(vals_data$Data)[1]>0){
-      shinyalert::shinyalert(paste0(input$con_newtable, " has loaded"),
+      shinyalert::shinyalert(paste0(input$con_table, " has loaded"),
                             type = "success",
                             showConfirmButton = TRUE)
     } else {
-      shinyalert::shinyalert(paste0(input$con_newtable, " did not load"),
+      shinyalert::shinyalert(paste0(input$con_table, " did not load"),
                             type = "error",
                             showConfirmButton = TRUE)
     }
@@ -91,12 +109,12 @@ function(input, output, session) {
         shiny::removeModal()
 
         DBI::dbCreateTable(conn = con$current,
-                           name =  input$con_newtable,
+                           name =  input$con_table,
                            fields = vals_data$Data)
 
         dplyr::copy_to(dest = con$current,
                       df = vals_data$Data,
-                      name = input$con_newtable,
+                      name = input$con_table,
                       temporary = FALSE,
                       overwrite = TRUE)
       })
@@ -115,7 +133,7 @@ function(input, output, session) {
 
         dplyr::copy_to(dest = con$current,
                        df = vals_data$Data,
-                       name = input$con_newtable,
+                       name = input$con_table,
                        temporary = FALSE,
                        overwrite = TRUE)
       })
@@ -216,7 +234,7 @@ function(input, output, session) {
     shiny::observeEvent(input$go_rds, {
 
       shiny::removeModal()
-      save_file <- paste0(con$data_dir, "/", input$con_newtable, ".", Sys.Date(), ".rds")
+      save_file <- paste0(con$data_dir, "/", input$con_table, ".", Sys.Date(), ".rds")
 
       saveRDS(object = vals_data$Data,
               file = save_file)
@@ -251,7 +269,7 @@ function(input, output, session) {
 
         output$download_uniq <- shiny::downloadHandler(
           filename <- function() {
-            paste0(con$data_dir, "/", input$con_newtable, ".uniq.", Sys.Date(), ".csv")
+            paste0(con$data_dir, "/", input$con_table, ".uniq.", Sys.Date(), ".csv")
           },
           content <- function(con) {
             write.csv(vals_data$Uniq, con)
