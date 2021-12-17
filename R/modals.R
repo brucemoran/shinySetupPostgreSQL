@@ -176,13 +176,11 @@ tell_about_load <- function() {
 
 #' Opens modal (text-box for input) to ask if save should go ahead
 #' @param INPUT object
-#' @param CON connection to db
-#' @param VALS_DATA data object
 #' @return a modal object
 #' @rdname sure_to_save
 #' @export
 
-sure_to_save <- function(INPUT, CON, VALS_DATA) {
+sure_to_save <- function(INPUT) {
   showModal(
     modalDialog(
       title = "Save current table? Saving overwrites previous data",
@@ -192,15 +190,6 @@ sure_to_save <- function(INPUT, CON, VALS_DATA) {
       footer = NULL
     )
   )
-
-  shiny::observeEvent(INPUT$go_save, {
-    dplyr::copy_to(dest = CON$current,
-                   df = VALS_DATA,
-                   name = INPUT$con_table,
-                   temporary = FALSE,
-                   overwrite = TRUE)
-    shiny::removeModal()
-  })
 }
 
 #' Opens modal telling save location
@@ -297,7 +286,7 @@ uniq_columns <- function(VALS_DATA) {
               shiny::selectInput(inputId = paste0("ucolumn_", f),
                                  label = choices_list[[f]],
                                  choices = c("Yes", "No"),
-                                 selected = "Yes")
+                                 selected = "No")
             }),
             actionButton("uniq_col", "Uniquify"),
             modalButton("Cancel"),

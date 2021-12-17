@@ -84,71 +84,88 @@ function(input, output, session) {
 
       shinySetupPostgreSQL::tell_about_load()
 
-      shiny::observeEvent(input$go_datared, {
-
-        shiny::removeModal()
-
-        DBI::dbCreateTable(conn = con$current,
-                           name =  input$con_table,
-                           fields = vals_data$Data)
-
-        dplyr::copy_to(dest = con$current,
-                      df = vals_data$Data,
-                      name = input$con_table,
-                      temporary = FALSE,
-                      overwrite = TRUE)
-      })
-
     } else {
 
       shinySetupPostgreSQL::newtable_exists(input)
 
-      shiny::observeEvent(input$go_askdata, ignoreInit=TRUE, {
-
-        shiny::removeModal()
-
-        vals_new <- shinySetupPostgreSQL::parse_input(input)
-
-        vals_data$Data <<- rbind(vals_data$Data, vals_new)
-
-        dplyr::copy_to(dest = con$current,
-                       df = vals_data$Data,
-                       name = input$con_table,
-                       temporary = FALSE,
-                       overwrite = TRUE)
-      })
     }
+  })
+
+
+  shiny::observeEvent(input$go_datared, {
+
+    shiny::removeModal()
+
+    DBI::dbCreateTable(conn = con$current,
+                       name =  input$con_table,
+                       fields = vals_data$Data)
+
+    dplyr::copy_to(dest = con$current,
+                   df = df_copy_to,
+                   name = input$con_table,
+                   temporary = FALSE,
+                   overwrite = TRUE)
+  })
+
+  ## * overwrite table with input ----------------------------------------------
+
+  shiny::observeEvent(input$go_askdata, ignoreInit=TRUE, {
+
+      shiny::removeModal()
+
+      vals_new <- shinySetupPostgreSQL::parse_input(input)
+
+      vals_data$Data <<- rbind(vals_data$Data, vals_new)
+
+      dplyr::copy_to(dest = con$current,
+                     df = vals_data$Df,
+                     name = input$con_table,
+                     temporary = FALSE,
+                     overwrite = TRUE)
   })
 
   ## * save current table ------------------------------------------------------
 
   shiny::observeEvent(input$save_tab, ignoreInit=TRUE, {
 
-    shinySetupPostgreSQL::sure_to_save(input, con, vals_data)
+    shinySetupPostgreSQL::sure_to_save(input)
 
+  })
+
+  shiny::observeEvent(input$go_save, {
+
+    df_copy_to <- as.data.frame(vals_data$Data)
+    dplyr::copy_to(dest = con$current,
+                   df = df_copy_to,
+                   name = input$con_table,
+                   temporary = FALSE,
+                   overwrite = TRUE)
+    shiny::removeModal()
   })
 
   ## * add columns to table ----------------------------------------------------
 
-  shiny::observeEvent(input$add_col, ignoreInit=TRUE, {
+  shiny::observeEvent(input$add_col, ignoreInit = TRUE, {
 
     shinySetupPostgreSQL::add_column(input)
 
-    shiny::observeEvent(input$ins_col, ignoreInit=TRUE, {
-      if(input$new_col %in% colnames(vals_data$Data)){
-        shiny::removeModal()
-        shinyalert::shinyalert("Column Already Exists",
-                               type = "error",
-                               showConfirmButton = TRUE)
-      } else {
-        shiny::observeEvent(input$ins_col, ignoreInit=TRUE, {
+  })
 
-          shiny::removeModal()
-          vals_data$Data <- tibble::add_column(.data = vals_data$Data,
-                                               !!input$new_col := NA)
-        })
-      }
-    })
+  shiny::observeEvent(input$ins_col, ignoreInit = TRUE, ignoreNULL = TRUE, {
+
+    if(input$new_col %in% colnames(vals_data$Data)){
+
+      shiny::removeModal()
+      shinyalert::shinyalert("Column Already Exists",
+                             type = "error",
+                             showConfirmButton = TRUE)
+    } else {
+
+      shiny::removeModal()
+      vals_data$Data <- tibble::add_column(.data = vals_data$Data,
+                                           !!input$new_col := NA)
+
+    }
   })
 
   ## * remove empty columns from table -----------------------------------------
@@ -157,26 +174,26 @@ function(input, output, session) {
 
     shinySetupPostgreSQL::delete_column(vals_data$Data)
 
-    shiny::observeEvent(input$col_del, ignoreInit=TRUE, {
+  })
 
-      check_empty <- unique(unlist(vals_data$Data[[input$col_to_del]]))
+  shiny::observeEvent(input$col_del, ignoreNULL = TRUE, {
 
-      if(!is.na(check_empty)){
+    check_empty <- unique(unlist(vals_data$Data[[input$col_to_del]]))
 
-        shiny::removeModal()
-        shinyalert::shinyalert("Column to be Deleted is not empty",
-                               type = "error",
-                               showConfirmButton = TRUE)
-      } else {
+    if(!is.na(check_empty)){
 
-        shiny::removeModal()
-        vals_data$Data <- dplyr::select(.data = vals_data$Data, -!!input$col_to_del)
-        shinyalert::shinyalert("Column Deleted",
-                               type = "success",
-                               showConfirmButton = TRUE)
+      shiny::removeModal()
+      shinyalert::shinyalert("Column to be Deleted is not empty",
+                             type = "error",
+                             showConfirmButton = TRUE)
+    } else {
 
-      }
-    })
+      shiny::removeModal()
+      vals_data$Data <- dplyr::select(.data = vals_data$Data, -!!input$col_to_del)
+      shinyalert::shinyalert("Column Deleted",
+                             type = "success",
+                             showConfirmButton = TRUE)
+    }
   })
 
   ## * reorder columns in table ------------------------------------------------
@@ -185,23 +202,28 @@ function(input, output, session) {
 
     shinySetupPostgreSQL::order_column(vals_data$Data)
 
-    shiny::observeEvent(input$arr_col, ignoreInit=TRUE, {
-      reorder_cols <- unlist(lapply(seq_along(colnames(vals_data$Data)), function(f){
-        colnf <- paste0("column_", f)
-        return(input[[colnf]])
-      }))
-      shiny::removeModal()
-      vals_data$Data <- dplyr::select(.data = vals_data$Data, !!reorder_cols)
+  })
 
-    })
+  shiny::observeEvent(input$arr_col, ignoreInit=TRUE, {
+
+    reorder_cols <- unlist(lapply(seq_along(colnames(vals_data$Data)), function(f){
+      colnf <- paste0("column_", f)
+      return(input[[colnf]])
+    }))
+
+    shiny::removeModal()
+    vals_data$Data <- dplyr::select(.data = vals_data$Data, !!reorder_cols)
+
   })
 
   ## * output tables -----------------------------------------------------------
 
   shiny::observeEvent(input$show_tab, ignoreInit=TRUE, {
+
     output$maintable1 <- DT::renderDataTable({
         shinySetupPostgreSQL::render_simple_maintable(vals_data$Data)
     })
+
     output$maintable2 <- DT::renderDataTable({
         shinySetupPostgreSQL::render_simple_maintable(vals_data$Data)
     })
@@ -211,57 +233,59 @@ function(input, output, session) {
 
     shinySetupPostgreSQL::saving_to(input)
 
-    shiny::observeEvent(input$go_rds, {
+  })
 
-      shiny::removeModal()
-      save_file <- paste0(con$data_dir, "/", input$con_table, ".", Sys.Date(), ".rds")
+  shiny::observeEvent(input$go_rds, {
 
-      saveRDS(object = vals_data$Data,
-              file = save_file)
+    shiny::removeModal()
+    save_file <- paste0(con$data_dir, "/", input$con_table, ".", Sys.Date(), ".rds")
 
-      shinyalert::shinyalert("Data Saved",
-                             type = "success",
-                             showConfirmButton = TRUE)
-      })
+    saveRDS(object = vals_data$Data,
+            file = save_file)
+
+    shinyalert::shinyalert("Data Saved",
+                           type = "success",
+                           showConfirmButton = TRUE)
+  })
+
+  ## * unique values of each column selected ---------------------------------
+
+  shiny::observeEvent(input$uni_col, ignoreInit=TRUE, {
+
+    shinySetupPostgreSQL::uniq_columns(vals_data$Data)
+
+  })
+
+  shiny::observeEvent(input$uniq_col, ignoreInit=TRUE, {
+
+    ##vector of yes or no
+    uniq_col <- unlist(lapply(seq_along(colnames(vals_data$Data)), function(f){
+      if(input[[paste0("ucolumn_", f)]] == "Yes"){
+        return(f)
+      }
+    }))
+
+    shiny::removeModal()
+
+    vals_data$Uniq <- shinySetupPostgreSQL::render_unique_maintable(vals_data$Data[,uniq_col])
+    output$uniqtable <- DT::renderDataTable({
+      vals_data$Uniq
     })
 
-    ## * unique values of each column selected ---------------------------------
+    output$download_uniq <- shiny::downloadHandler(
+      filename <- function() {
+        paste0(con$data_dir, "/", input$con_table, ".uniq.", Sys.Date(), ".csv")
+      },
+      content <- function(con) {
+        write.csv(vals_data$Uniq, con)
+      }
+    )
+  })
 
-    shiny::observeEvent(input$uni_col, ignoreInit=TRUE, {
-
-      shinySetupPostgreSQL::uniq_columns(vals_data$Data)
-
-      shiny::observeEvent(input$uniq_col, ignoreInit=TRUE, {
-
-        ##vector of yes or no
-        uniq_col <- unlist(lapply(seq_along(colnames(vals_data$Data)), function(f){
-          if(input[[paste0("ucolumn_", f)]] == "Yes"){
-            return(f)
-          }
-        }))
-
-        shiny::removeModal()
-
-        vals_data$Uniq <- shinySetupPostgreSQL::render_unique_maintable(vals_data$Data[,uniq_col])
-        output$uniqtable <- DT::renderDataTable({
-          vals_data$Uniq
-        })
-
-        output$download_uniq <- shiny::downloadHandler(
-          filename <- function() {
-            paste0(con$data_dir, "/", input$con_table, ".uniq.", Sys.Date(), ".csv")
-          },
-          content <- function(con) {
-            write.csv(vals_data$Uniq, con)
-          }
-        )
-      })
-    })
-
-    ## * disconnect from db on session end -------------------------------------
-    session$onSessionEnded(function() {
-      shiny::observe(
-        shinySetupPostgreSQL::disc_db_con(input)
-      )
-    })
+  ## * disconnect from db on session end -------------------------------------
+  session$onSessionEnded(function() {
+    shiny::observe(
+      shinySetupPostgreSQL::disc_db_con(input)
+    )
+  })
 }
