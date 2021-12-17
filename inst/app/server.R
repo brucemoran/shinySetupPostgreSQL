@@ -91,7 +91,6 @@ function(input, output, session) {
     }
   })
 
-
   shiny::observeEvent(input$go_datared, {
 
     shiny::removeModal()
@@ -137,7 +136,7 @@ function(input, output, session) {
     df_copy_to <- as.data.frame(vals_data$Data)
     dplyr::copy_to(dest = con$current,
                    df = df_copy_to,
-                   name = input$con_table,
+                   name = input$save_tab_name,
                    temporary = FALSE,
                    overwrite = TRUE)
     shiny::removeModal()
@@ -213,6 +212,22 @@ function(input, output, session) {
 
     shiny::removeModal()
     vals_data$Data <- dplyr::select(.data = vals_data$Data, !!reorder_cols)
+
+  })
+
+  ## * rename columns in table -------------------------------------------------
+
+  shiny::observeEvent(input$ren_col, ignoreInit=TRUE, {
+
+    shinySetupPostgreSQL::rename_column(vals_data$Data)
+
+  })
+
+  shiny::observeEvent(input$rename_col, ignoreInit=TRUE, {
+
+    dplyr::rename(.data = vals_data$Data,
+                  !!input$new_colname := !!input$col_to_rename)
+    shiny::removeModal()
 
   })
 

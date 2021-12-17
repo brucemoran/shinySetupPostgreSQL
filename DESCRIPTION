@@ -1,12 +1,12 @@
 Package: shinySetupPostgreSQL
 Title: Read XLSX or RDS files into a PostgreSQL table using Shiny.
-Version: 0.4
+Version: 0.5
 Authors@R:
     person(given = "Bruce",
            family = "Moran",
            role = c("aut", "cre"),
            email = "bruce.moran@ucd.ie")
-Description: The package is designed to take input of XLSX or RDS data, parse this and store as table in PostgreSQL, and optionally as RDS.
+Description: The package is designed to take input of XLSX or RDS data, parse this and store as table in PostgreSQL, and optionally as RDS. Editing of columns is available, as is export in RDS and saving to PostgreSQL table.  
 License: `use_mit_license()`
 Encoding: UTF-8
 LazyData: true

@@ -183,7 +183,8 @@ tell_about_load <- function() {
 sure_to_save <- function(INPUT) {
   showModal(
     modalDialog(
-      title = "Save current table? Saving overwrites previous data",
+      title = "Enter Table Name to Which to Save (N.B. saving to current table overwrites data and saves edits)",
+      textInput(inputId = "save_tab_name", "Table Name", value = input$con_table),
       easyClose = FALSE,
       actionButton(inputId = "go_save", label = "Ok"),
       modalButton("Cancel"),
@@ -246,6 +247,28 @@ order_column <- function(VALS_DATA) {
             modalButton("Cancel"),
             footer = NULL)
   )
+}
+
+#' Opens modal (dropdowns for input) to ask for column to rename
+#' @param VALS_DATA named list of colnames of data
+#' @return a modal object
+#' @rdname order_column
+#' @export
+
+rename_column <- function(VALS_DATA) {
+  colns <- colnames(VALS_DATA)
+  choices_list <- as.list(colns)
+  names(choices_list) <- colns
+
+  showModal(modalDialog(title = "Select Column to Rename",
+              shiny::selectInput(inputId = "col_to_rename",
+                                 label = "Current Column Name",
+                                 choices = choices_list),
+              textInput(inputId = "new_colname", "New Column Name", placeholder = "")
+              ),
+            actionButton("rename_col", "Rename"),
+            modalButton("Cancel"),
+            footer = NULL)
 }
 
 #' Opens modal to ask for columns to delete (only those without data available)

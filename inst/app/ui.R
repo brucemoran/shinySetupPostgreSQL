@@ -33,6 +33,7 @@ shiny::fluidPage(
           shiny::fluidRow(
             shiny::actionButton("add_col", icon = icon("plus"), label = "Add Column"),
             shiny::actionButton("ord_col", icon = icon("move"), label = "Order Columns"),
+            shiny::actionButton("ren_col", icon = icon("move"), label = "Rename Columns"),
             shiny::actionButton("del_col", icon = icon("move"), label = "Delete Column")
           )
         ),

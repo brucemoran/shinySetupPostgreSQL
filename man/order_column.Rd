@@ -2,16 +2,23 @@
 % Please edit documentation in R/modals.R
 \name{order_column}
 \alias{order_column}
+\alias{rename_column}
 \title{Opens modal (dropdowns for input) to ask for orders of columns}
 \usage{
 order_column(VALS_DATA)
+
+rename_column(VALS_DATA)
 }
 \arguments{
 \item{VALS_DATA}{named list of colnames of data}
 }
 \value{
 a modal object
+
+a modal object
 }
 \description{
 Opens modal (dropdowns for input) to ask for orders of columns
+
+Opens modal (dropdowns for input) to ask for column to rename
 }
