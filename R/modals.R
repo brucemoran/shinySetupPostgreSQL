@@ -261,14 +261,14 @@ rename_column <- function(VALS_DATA) {
   names(choices_list) <- colns
 
   showModal(modalDialog(title = "Select Column to Rename",
-              shiny::selectInput(inputId = "col_to_rename",
-                                 label = "Current Column Name",
-                                 choices = choices_list),
-              textInput(inputId = "new_colname", "New Column Name", placeholder = "")
-              ),
+            shiny::selectInput(inputId = "col_to_rename",
+                               label = "Current Column Name",
+                               choices = choices_list),
+            textInput(inputId = "new_colname", "New Column Name", placeholder = ""),
             actionButton("rename_col", "Rename"),
             modalButton("Cancel"),
             footer = NULL)
+  )
 }
 
 #' Opens modal to ask for columns to delete (only those without data available)
