@@ -21,4 +21,5 @@ Imports:
     lubridate,
     tidyr,
     tibble,
-    readxl
+    readxl,
+    magrittr
