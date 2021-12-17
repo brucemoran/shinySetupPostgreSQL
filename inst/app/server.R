@@ -225,8 +225,8 @@ function(input, output, session) {
 
   shiny::observeEvent(input$rename_col, ignoreInit=TRUE, {
 
-    dplyr::rename(.data = vals_data$Data,
-                  !!input$new_colname := !!input$col_to_rename)
+    vals_data$Data <- dplyr::rename(.data = vals_data$Data,
+                                    !!input$new_colname := !!input$col_to_rename)
     shiny::removeModal()
 
   })
