@@ -409,12 +409,12 @@ obsev_save_rds <- function(INPUT){
 #' @rdname obsev_go_rds
 #' @export
 
-obsev_go_rds <- function(INPUT, VALS_DATA){
+obsev_go_rds <- function(INPUT, CON, VALS_DATA){
   print("obsev_go_rds")
   shiny::observeEvent(INPUT$go_rds, {
 
     shiny::removeModal()
-    save_file <- paste0(con$data_dir, "/", INPUT$con_table, ".", Sys.Date(), ".rds")
+    save_file <- paste0(CON$data_dir, "/", INPUT$con_table, ".", Sys.Date(), ".rds")
 
     saveRDS(object = VALS_DATA$Data,
             file = save_file)
