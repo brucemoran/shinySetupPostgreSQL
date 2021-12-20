@@ -78,7 +78,7 @@ function(input, output, session) {
 
   shinySetupPostgreSQL::obsev_save_rds(input)
 
-  shinySetupPostgreSQL::obsev_go_rds(input, vals_data)
+  shinySetupPostgreSQL::obsev_go_rds(input, con, vals_data)
 
   ## * unique values of each column selected ---------------------------------
 
