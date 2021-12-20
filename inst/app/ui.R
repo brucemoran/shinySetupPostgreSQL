@@ -32,9 +32,9 @@ shiny::fluidPage(
         shiny::sidebarPanel(width = 9,
           shiny::fluidRow(
             shiny::actionButton("add_col", icon = icon("plus"), label = "Add Column"),
-            shiny::actionButton("ord_col", icon = icon("move"), label = "Order Columns"),
-            shiny::actionButton("ren_col", icon = icon("move"), label = "Rename Columns"),
-            shiny::actionButton("del_col", icon = icon("move"), label = "Delete Column")
+            shiny::actionButton("ord_col", icon = icon("sort"), label = "Order Columns"),
+            shiny::actionButton("ren_col", icon = icon("pen"), label = "Rename Columns"),
+            shiny::actionButton("del_col", icon = icon("minus"), label = "Delete Column")
           )
         ),
         shiny::mainPanel(fluid = TRUE, DT::dataTableOutput('maintable2'))
@@ -44,7 +44,7 @@ shiny::fluidPage(
       shiny::sidebarLayout(
         shiny::sidebarPanel(width = 9,
           shiny::fluidRow(
-            shiny::actionButton("uni_col", icon = icon("minus"), label = "Uniquify Column"),
+            shiny::actionButton("uni_col", icon = icon("fingerprint"), label = "Uniquify Column"),
             shiny::downloadButton(outputId = "download_uniq",
                                   label = "Download Unique Table")
           )
