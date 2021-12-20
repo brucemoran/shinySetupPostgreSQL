@@ -1,7 +1,5 @@
 # server.R
 
-source("../../R/observe_events.R")
-
 function(input, output, session) {
 
   ## * log in to database ------------------------------------------------------
