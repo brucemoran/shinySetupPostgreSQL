@@ -404,6 +404,7 @@ obsev_save_rds <- function(INPUT){
 
 #' Go saving RDS
 #' @param INPUT session input
+#' @param CON database connection
 #' @param VALS_DATA data reactiveVal
 #' @return NULL
 #' @rdname obsev_go_rds
