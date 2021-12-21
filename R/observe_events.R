@@ -55,7 +55,7 @@ obsev_db_conxn <- function(INPUT, OUTPUT){
 
     OUTPUT$advanced <- shinySetupPostgreSQL::validate_user_cond(INPUT)
 
-    shiny::OUTPUTOptions(OUTPUT, "advanced", suspendWhenHidden = FALSE)
+    shiny::outputOptions(OUTPUT, "advanced", suspendWhenHidden = FALSE)
   })
 }
 
