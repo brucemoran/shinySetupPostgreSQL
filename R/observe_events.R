@@ -444,6 +444,7 @@ obsev_uni_col <- function(INPUT, VALS_DATA){
 
 #' Column data uniquified and output
 #' @param INPUT session input
+#' @param CON database connection
 #' @param VALS_DATA data reactiveVal
 #' @param OUTPUT session OUTPUT
 #' @return NULL
@@ -470,7 +471,7 @@ obsev_uniq_col <- function(INPUT, VALS_DATA, OUTPUT){
 
     OUTPUT$download_uniq <- shiny::downloadHandler(
       filename <- function() {
-        paste0(con$data_dir, "/", INPUT$con_table, ".uniq.", Sys.Date(), ".csv")
+        paste0(CON$data_dir, "/", INPUT$con_table, ".uniq.", Sys.Date(), ".csv")
       },
       content <- function(con) {
         write.csv(VALS_DATA$Uniq, con)
