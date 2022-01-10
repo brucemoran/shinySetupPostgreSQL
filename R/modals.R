@@ -184,7 +184,7 @@ sure_to_save <- function(INPUT) {
   showModal(
     modalDialog(
       title = "Enter Table Name to Which to Save (N.B. saving to current table overwrites data and saves edits)",
-      textInput(inputId = "save_tab_name", "Table Name", value = input$con_table),
+      textInput(inputId = "save_tab_name", "Table Name", value = INPUT$con_table),
       easyClose = FALSE,
       actionButton(inputId = "go_save", label = "Ok"),
       modalButton("Cancel"),
