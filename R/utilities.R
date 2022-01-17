@@ -16,7 +16,7 @@ import_cmd_pdf <- function(pdf_path, batch = TRUE){
   }
 
   ##iterate over PDF input(s)
-  lapply(pdf_s, function(f){
+  unlist(lapply(pdf_s, function(f){
   	print(paste0("Working on: ", f))
 
     ##read in PDF text
@@ -114,8 +114,12 @@ import_cmd_pdf <- function(pdf_path, batch = TRUE){
                     `Tumour % Ext.` = tumour_pc,
                     Mutation = muts,
                     Test = "External",
+                    `Pri/Met` = "-",
+                    `Macrod.` = "-",
+                    Tissue = "-",
+                    Source = "-",
                     Date_Ext_Rec = date_rec,
                     Date_Ext_Rep = date_rep))
     }
-  })
+  }))
 }
