@@ -157,7 +157,7 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
 
       vals_new <- shinySetupPostgreSQL::parse_input(INPUT)
 
-      VALS_DATA$Data <<- rbind(VALS_DATA$Data, vals_new)
+      VALS_DATA$Data <<- dplyr::bind_rows(VALS_DATA$Data, vals_new)
 
       df_copy_to <- as.data.frame(VALS_DATA$Data)
       dplyr::copy_to(dest = CON$current,
