@@ -103,7 +103,7 @@ obsev_FILENAMES <- function(INPUT, CON, VALS_DATA){
 
     if(is.null(CON$extantable)){
 
-      VALS_DATA$Data <- shinySetupPostgreSQL::parse_INPUT(INPUT)
+      VALS_DATA$Data <- shinySetupPostgreSQL::parse_input(INPUT)
 
       shinySetupPostgreSQL::tell_about_load()
 
