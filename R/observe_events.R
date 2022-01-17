@@ -170,7 +170,7 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
         })
         vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
       }
-      s
+
       VALS_DATA$Data <<- dplyr::bind_rows(VALS_DATA$Data, vals_new)
 
       df_copy_to <- as.data.frame(VALS_DATA$Data)
