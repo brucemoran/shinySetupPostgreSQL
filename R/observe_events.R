@@ -157,6 +157,20 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
 
       vals_new <- shinySetupPostgreSQL::parse_input(INPUT)
 
+      date_cols <- vals_new[,grep("Date_", colnames(vals_new))]
+      date_class <- names(table(unlist(lapply(date_cols, class))))
+
+      if(date_class != "Date"){
+        dc_list <- lapply(date_cols, function(f){
+          delim <- "-"
+          if(length(strsplit(unlist(date_cols[1]), "/")[[1]])){
+            delim <- "/"
+          }
+          as.Date(f, format = paste0("%d",delim,"%m",delim,"%Y"))
+        })
+        vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
+      }
+      s
       VALS_DATA$Data <<- dplyr::bind_rows(VALS_DATA$Data, vals_new)
 
       df_copy_to <- as.data.frame(VALS_DATA$Data)
