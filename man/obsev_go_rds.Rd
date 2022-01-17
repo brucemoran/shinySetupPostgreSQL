@@ -4,10 +4,12 @@
 \alias{obsev_go_rds}
 \title{Go saving RDS}
 \usage{
-obsev_go_rds(INPUT, VALS_DATA)
+obsev_go_rds(INPUT, CON, VALS_DATA)
 }
 \arguments{
 \item{INPUT}{session input}
+
+\item{CON}{database connection}
 
 \item{VALS_DATA}{data reactiveVal}
 }

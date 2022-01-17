@@ -487,6 +487,21 @@ parse_input <- function(INPUT){
 
     return(data_out)
   }
+
+  if(length(grep(".pdf$", INPUT$FILENAMES$datapath[1]) > 0)){
+
+    shiny::showModal(modalDialog("Reading CMD format PDF input, please wait.\n", footer = NULL))
+
+    tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
+      import_cmd_pdf(f)
+    })
+    vals_tib <- do.call(dplyr::bind_rows, tibList)
+    data_out <- renameParse(vals_tib) %>%
+                dplyr::distinct()
+    shiny::removeModal()
+
+    return(data_out)
+  }
 }
 
 #' Read sheets from XLSX

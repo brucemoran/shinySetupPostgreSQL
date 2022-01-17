@@ -12,6 +12,8 @@ obsev_uniq_col(INPUT, VALS_DATA, OUTPUT)
 \item{VALS_DATA}{data reactiveVal}
 
 \item{OUTPUT}{session OUTPUT}
+
+\item{CON}{database connection}
 }
 \description{
 Column data uniquified and output
