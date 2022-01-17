@@ -155,7 +155,7 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
 
       shiny::removeModal()
 
-      vals_new <- shinySetupPostgreSQL::parse_INPUT(INPUT)
+      vals_new <- shinySetupPostgreSQL::parse_input(INPUT)
 
       VALS_DATA$Data <<- rbind(VALS_DATA$Data, vals_new)
 
