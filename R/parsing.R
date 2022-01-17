@@ -496,11 +496,10 @@ parse_input <- function(INPUT){
       import_cmd_pdf(f)
     })
     vals_tib <- do.call(dplyr::bind_rows, tibList)
-    data_out <- renameParse(vals_tib) %>%
-                dplyr::distinct()
+
     shiny::removeModal()
 
-    return(data_out)
+    return(vals_tib)
   }
 }
 
