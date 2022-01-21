@@ -493,7 +493,7 @@ parse_input <- function(INPUT){
     shiny::showModal(modalDialog("Reading CMD format PDF input, please wait.\n", footer = NULL))
 
     tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
-      import_cmd_pdfs(pdf_path = INPUT$FILENAMES$datapath)
+      import_cmd_pdf(pdf_path = f)
     })
     vals_tib <- do.call(dplyr::bind_rows, tibList)
     vals_tib <- dplyr::distinct(vals_tib)
