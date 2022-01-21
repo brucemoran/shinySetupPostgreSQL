@@ -23,6 +23,7 @@ validate_user_nt <- function(INPUT) {
           textInput(paste0("con_drv", INPUT$user_cred), "Driver", value = "RPostgres::Postgres()"),
           textInput(paste0("con_host", INPUT$user_cred), "Host", value = "localhost"),
           textInput(paste0("con_port", INPUT$user_cred), "Port", value = 5432),
+          textInput(paste0("con_timezone", INPUT$user_cred), "Timezone", value = "GMT"),
           textInput(paste0("con_dbname", INPUT$user_cred), "Database Name", value = "postgres")
         )
       )
