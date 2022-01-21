@@ -60,6 +60,7 @@ test_db_con <- function(INPUT) {
   cancon <- DBI::dbCanConnect(drv = eval(parse(text = INPUT$con_drv)),
                               host = INPUT$con_host,
                               port = INPUT$con_port,
+                              timezone = INPUT$con_timezone,
                               dbname = INPUT$con_dbname,
                               user = INPUT$username,
                               password = INPUT$password)
@@ -85,6 +86,7 @@ test_db_results <- function(INPUT, CON){
     CON$current <- DBI::dbConnect(drv = eval(parse(text = INPUT$con_drv)),
                           host = INPUT$con_host,
                           port = INPUT$con_port,
+                          timezone = INPUT$con_timezone,
                           dbname = INPUT$con_dbname,
                           user = INPUT$username,
                           password = INPUT$password)
