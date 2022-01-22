@@ -2,7 +2,7 @@
 % Please edit documentation in R/observe_events.R
 \name{obsev_go_askdata}
 \alias{obsev_go_askdata}
-\title{Data read}
+\title{Ask to save data into current table}
 \usage{
 obsev_go_askdata(INPUT, CON, VALS_DATA)
 }
@@ -14,5 +14,5 @@ obsev_go_askdata(INPUT, CON, VALS_DATA)
 \item{VALS_DATA}{data reactiveVal}
 }
 \description{
-Data read
+Ask to save data into current table
 }
