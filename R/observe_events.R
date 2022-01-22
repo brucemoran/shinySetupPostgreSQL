@@ -172,6 +172,7 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
         })
         vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
       }
+      vals_new[,"Year"] <- lubridate::year(vals_new[,date_cols[1]])
 
       ##combine
       VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vals_new)
