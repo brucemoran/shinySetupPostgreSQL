@@ -91,7 +91,7 @@ import_cmd_pdfs <- function (pdf_path) {
           muts <- "NO MUTS"
         }
 
-        return(list(Year = lubridate::year(date_rec),
+        return(list(Year = lubridate::year(lubridate::ymd(date_rec)),
                     Forename = fname,
                     Surname = sname,
                     DOB = dob,
