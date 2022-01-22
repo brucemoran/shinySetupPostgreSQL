@@ -91,7 +91,7 @@ import_cmd_pdfs <- function (pdf_path) {
           muts <- "NO MUTS"
         }
 
-        return(list(Year = NA,
+        return(list(Year = 1,
                     Forename = fname,
                     Surname = sname,
                     DOB = dob,
