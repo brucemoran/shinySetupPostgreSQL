@@ -141,7 +141,7 @@ obsev_go_datared <- function(INPUT, CON, VALS_DATA){
   })
 }
 
-#' Data read
+#' Ask to save data into current table
 #' @param INPUT session input
 #' @param CON connection reactiveVal
 #' @param VALS_DATA data reactiveVal
@@ -151,10 +151,12 @@ obsev_go_datared <- function(INPUT, CON, VALS_DATA){
 
 obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
   print("obsev_go_askdata")
+
   shiny::observeEvent(INPUT$go_askdata, ignoreInit=TRUE, {
 
       shiny::removeModal()
 
+      ##parse FILENAMES
       vals_new <- shinySetupPostgreSQL::parse_input(INPUT)
 
       date_cols <- vals_new[,grep("Date_", colnames(vals_new))]
@@ -171,9 +173,11 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
         vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
       }
 
-      VALS_DATA$Data <<- dplyr::bind_rows(VALS_DATA$Data, vals_new)
+      ##combine
+      VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vals_new)
 
       df_copy_to <- as.data.frame(VALS_DATA$Data)
+
       dplyr::copy_to(dest = CON$current,
                      df = df_copy_to,
                      name = INPUT$con_table,

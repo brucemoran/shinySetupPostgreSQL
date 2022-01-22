@@ -89,13 +89,25 @@ import_cmd_pdfs <- function (pdf_path) {
           })), collapse = ";")
         } else {
           muts <- "NO MUTS"
-          }
-        return(list(Forename = fname, Surname = sname, DOB = dob,
-        Specimen = speci, Block = block, Cancer = cancer,
-        `Hosp. No.` = hospno, `Tumour % Ext.` = tumour_pc,
-        Mutation = muts, Test = "External", `Pri/Met` = "-",
-        Macrod. = "-", Tissue = "-", Source = "-", Date_Ext_Rec = date_rec,
-        Date_Ext_Rep = date_rep))
+        }
+
+        return(list(Year = lubridate::year(date_rec),
+                    Forename = fname,
+                    Surname = sname,
+                    DOB = dob,
+                    Specimen = speci,
+                    Block = block,
+                    Cancer = cancer,
+                    `Hosp. No.` = hospno,
+                    `Tumour % Ext.` = tumour_pc,
+                    Mutation = muts,
+                    Test = "External",
+                    `Pri/Met` = "-",
+                    Macrod. = "-",
+                    Tissue = "-",
+                    Source = "-",
+                    Date_Ext_Rec = date_rec,
+                    Date_Ext_Rep = date_rep))
       }
     }
   } else {
