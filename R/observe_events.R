@@ -179,6 +179,8 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
       } else {
         is_rec <- "Date_Ext_Rec"
       }
+      print("YEARS")
+      print(vals_new)
       vals_new[,"Year"] <- lubridate::year(vals_new[,is_rec])
 
       ##combine
