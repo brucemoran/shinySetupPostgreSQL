@@ -180,8 +180,8 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
         is_rec <- "Date_Ext_Rec"
       }
       print("YEARS")
-      print(vals_new[,is_rec])
-      vals_new[,"Year"] <- lubridate::year(vals_new[,is_rec])
+      print(lubridate::year(vals_new[,is_rec]))
+#      vals_new[,"Year"] <- lubridate::year(vals_new[,is_rec])
 
       ##combine
       VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vals_new)
