@@ -181,7 +181,7 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
       }
 
       vals_new[,"Year"] <- unlist(lapply(vals_new[,is_rec], function(f){
-          format(f, format="%Y")
+          as.numeric(format(f, format="%Y"))
         }))
 
       ##combine
