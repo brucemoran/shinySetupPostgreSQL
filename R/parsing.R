@@ -448,7 +448,8 @@ renameParse <- function(INPUT){
                 Date_Ext_Rec,
                 Date_Ext_Rep,
                 Date_Authorised,
-                TAT, TAT_ext) %>%
+                TAT,
+                TAT_ext) %>%
   dplyr::distinct()
 }
 
@@ -466,7 +467,7 @@ parse_input <- function(INPUT){
 
     shiny::showModal(modalDialog("Reading XLSX input, please wait.\n", footer = NULL))
 
-    data_out <- input_from_xlsx(INPUT)
+    data_out <- shinySetupPostgreSQL::input_from_xlsx(INPUT)
     shiny::removeModal()
 
     return(data_out)
@@ -480,8 +481,10 @@ parse_input <- function(INPUT){
     tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
       readRDS(f)
     })
-    vals_tib <- do.call(dplyr::bind_rows, tibList)
-    data_out <- renameParse(vals_tib) %>%
+
+    tibList_nn <- Filter(Negate(is.null), tibList)
+    vals_tib <- do.call(dplyr::bind_rows, tibList_nn)
+    data_out <- shinySetupPostgreSQL::renameParse(vals_tib) %>%
                 dplyr::distinct()
     shiny::removeModal()
 
@@ -496,12 +499,13 @@ parse_input <- function(INPUT){
       import_cmd_pdfs(pdf_path = f)
     })
 
-    vals_tib <- dplyr::bind_rows(tibList)
-    vals_tib <- dplyr::distinct(vals_tib)
+    tibList_nn <- Filter(Negate(is.null), tibList)
+    vals_tib <- dplyr::bind_rows(tibList_nn)
+    data_out <- dplyr::distinct(vals_tib)
 
     shiny::removeModal()
 
-    return(vals_tib)
+    return(data_out)
   }
 }
 

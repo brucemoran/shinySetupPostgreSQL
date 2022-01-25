@@ -12,7 +12,7 @@ obsev_userpass <- function(INPUT, CON){
   shiny::observeEvent(INPUT$userpass, {
 
     CON$cancon <- shinySetupPostgreSQL::test_db_con(INPUT)
-
+    print(CON$cancon)
     shiny::removeModal()
 
     CON$extantable <- shinySetupPostgreSQL::test_db_results(INPUT, CON)
@@ -69,21 +69,25 @@ obsev_db_conxn <- function(INPUT, OUTPUT){
 
 obsev_extantabled <- function(INPUT, CON, VALS_DATA){
   print("obsev_extantabled")
-  shiny::observeEvent(CON$extantabled, ignoreInit=TRUE, {
+  shiny::observeEvent(CON$extantabled, ignoreInit = TRUE, {
 
     ## table read and can be displayed/saved if new data is not to be appended
     vpd <- dplyr::tbl(CON$current, INPUT$con_table)
+
+    ##collect into the standard Data reactive
     VALS_DATA$Data <- dplyr::collect(vpd)
 
-    if(dim(VALS_DATA$Data)[1]>0){
-      shinyalert::shinyalert(paste0(INPUT$con_table, " has loaded"),
-                            type = "success",
-                            showConfirmButton = TRUE)
-    } else {
-      shinyalert::shinyalert(paste0(INPUT$con_table, " did not load"),
-                            type = "error",
-                            showConfirmButton = TRUE)
-    }
+    ##if a new table, make the numeric columns numeric for forward compat.
+    num_table_cols <- colnames(VALS_DATA$Data)[colnames(VALS_DATA$Data) %in% numeric_table_cols()]
+    dat_table_cols <- colnames(VALS_DATA$Data)[colnames(VALS_DATA$Data) %in% date_table_cols()]
+    VALS_DATA$Data <- dplyr::mutate(.data = VALS_DATA$Data,
+                                    dplyr::across(!!num_table_cols, as.numeric),
+                                    dplyr::across(!!dat_table_cols, as.Date))
+
+    ## show table loaded
+    shinyalert::shinyalert(paste0(INPUT$con_table, " has loaded"),
+                           type = "success",
+                           showConfirmButton = TRUE)
   })
 }
 
@@ -99,66 +103,55 @@ obsev_FILENAMES <- function(INPUT, CON, VALS_DATA){
   print("obsev_FILENAMES")
   shiny::observeEvent(INPUT$FILENAMES, ignoreInit=TRUE, {
 
-    ## * create or append table ------------------------------------------------
+    ## loaded data is combined with current table
+    ## NB that tables can be empty by specifying unused table name
 
-    if(is.null(CON$extantable)){
+    shinySetupPostgreSQL::load_data_proceed(INPUT)
 
-      VALS_DATA$Data <- shinySetupPostgreSQL::parse_input(INPUT)
-
-      shinySetupPostgreSQL::tell_about_load()
-
-    } else {
-
-      shinySetupPostgreSQL::newtable_exists(INPUT)
-
-    }
   })
 }
 
-#' Data read
+# #' Data has been read successfully
+# #' @param INPUT session input
+# #' @param CON connection reactiveVal
+# #' @param VALS_DATA data reactiveVal
+# #' @return NULL
+# #' @rdname obsev_go_datared
+# #' @export
+#
+# obsev_go_datared <- function(INPUT, CON, VALS_DATA){
+#   print("obsev_go_datared")
+#   shiny::observeEvent(INPUT$go_datared, {
+#
+#     shiny::removeModal()
+#
+#     dplyr::copy_to(dest = CON$current,
+#                    df = df_copy_to,
+#                    name = INPUT$con_table,
+#                    temporary = FALSE,
+#                    overwrite = TRUE)
+#   })
+# }
+
+#' Load data into current table
 #' @param INPUT session input
 #' @param CON connection reactiveVal
 #' @param VALS_DATA data reactiveVal
 #' @return NULL
-#' @rdname obsev_go_datared
+#' @rdname obsev_go_loaddata
 #' @export
 
-obsev_go_datared <- function(INPUT, CON, VALS_DATA){
-  print("obsev_go_datared")
-  shiny::observeEvent(INPUT$go_datared, {
+obsev_go_loaddata <- function(INPUT, CON, VALS_DATA){
+  print("obsev_go_loaddata")
 
-    shiny::removeModal()
-
-    DBI::dbCreateTable(conn = CON$current,
-                       name =  INPUT$con_table,
-                       fields = VALS_DATA$Data)
-
-    dplyr::copy_to(dest = CON$current,
-                   df = df_copy_to,
-                   name = INPUT$con_table,
-                   temporary = FALSE,
-                   overwrite = TRUE)
-  })
-}
-
-#' Ask to save data into current table
-#' @param INPUT session input
-#' @param CON connection reactiveVal
-#' @param VALS_DATA data reactiveVal
-#' @return NULL
-#' @rdname obsev_go_askdata
-#' @export
-
-obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
-  print("obsev_go_askdata")
-
-  shiny::observeEvent(INPUT$go_askdata, ignoreInit=TRUE, {
+  shiny::observeEvent(INPUT$go_loaddata, ignoreInit=TRUE, {
 
       shiny::removeModal()
 
       ##parse FILENAMES
       vals_new <- shinySetupPostgreSQL::parse_input(INPUT)
 
+      ##prep Date_ entries to be dates
       date_cols <- vals_new[,grep("Date_", colnames(vals_new))]
       date_class <- names(table(unlist(lapply(date_cols, class))))
 
@@ -173,7 +166,7 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
         vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
       }
 
-      ##should be one of these cols to get Year from
+      ##use one of these cols to get Year from when unspecified
       if("Date_Rec" %in% colnames(vals_new)){
         is_rec <- "Date_Rec"
       } else {
@@ -181,19 +174,17 @@ obsev_go_askdata <- function(INPUT, CON, VALS_DATA){
       }
 
       vals_new[,"Year"] <- unlist(lapply(vals_new[,is_rec], function(f){
-          as.numeric(format(f, format="%Y"))
+          as.character(format(f, format="%Y"))
         }))
+
+      num_table_cols <- colnames(vals_new)[colnames(vals_new) %in% numeric_table_cols()]
+      vals_new <- dplyr::mutate(.data = vals_new, dplyr::across(!!num_table_cols, as.numeric))
 
       ##combine
       VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vals_new)
 
-      df_copy_to <- as.data.frame(VALS_DATA$Data)
+      VALS_DATA$Data <- as.data.frame(VALS_DATA$Data)
 
-      dplyr::copy_to(dest = CON$current,
-                     df = df_copy_to,
-                     name = INPUT$con_table,
-                     temporary = FALSE,
-                     overwrite = TRUE)
   })
 }
 
@@ -225,6 +216,7 @@ obsev_go_save <- function(INPUT, CON, VALS_DATA){
   shiny::observeEvent(INPUT$go_save, {
 
     df_copy_to <- as.data.frame(VALS_DATA$Data)
+
     dplyr::copy_to(dest = CON$current,
                    df = df_copy_to,
                    name = INPUT$save_tab_name,

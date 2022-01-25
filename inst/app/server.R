@@ -36,11 +36,9 @@ function(input, output, session) {
 
   shinySetupPostgreSQL::obsev_FILENAMES(input, con, vals_data)
 
-  shinySetupPostgreSQL::obsev_go_datared(input, con, vals_data)
-
   ## * overwrite table with input ----------------------------------------------
 
-  shinySetupPostgreSQL::obsev_go_askdata(input, con, vals_data)
+  shinySetupPostgreSQL::obsev_go_loaddata(input, con, vals_data)
 
   ## * save current table ------------------------------------------------------
 

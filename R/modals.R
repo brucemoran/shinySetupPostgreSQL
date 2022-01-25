@@ -64,6 +64,7 @@ test_db_con <- function(INPUT) {
                               dbname = INPUT$con_dbname,
                               user = INPUT$username,
                               password = INPUT$password)
+
   return(cancon)
 }
 
@@ -84,17 +85,17 @@ test_db_results <- function(INPUT, CON){
   } else {
 
     CON$current <- DBI::dbConnect(drv = eval(parse(text = INPUT$con_drv)),
-                          host = INPUT$con_host,
-                          port = INPUT$con_port,
-                          timezone = INPUT$con_timezone,
-                          dbname = INPUT$con_dbname,
-                          user = INPUT$username,
-                          password = INPUT$password)
+                                  host = INPUT$con_host,
+                                  port = INPUT$con_port,
+                                  timezone = INPUT$con_timezone,
+                                  dbname = INPUT$con_dbname,
+                                  user = INPUT$username,
+                                  password = INPUT$password)
 
-    extantable <- DBI::dbExistsTable(CON$current,
-                                     INPUT$con_table)
+    CON$extantable <- DBI::dbExistsTable(CON$current,
+                                         INPUT$con_table)
 
-    if(extantable){
+    if(CON$extantable){
 
       shinyalert::shinyalert("Login successful",
                              type = "success",
@@ -102,10 +103,18 @@ test_db_results <- function(INPUT, CON){
       return(TRUE)
     } else {
 
-      shinyalert::shinyalert(paste0("Table: ", INPUT$con_table, " does not exist"),
-                             type = "error",
-                             showConfirmButton = FALSE)
-      return(FALSE)
+      shinyalert::shinyalert(paste0("Table: ", INPUT$con_table, " does not exist but has been created and is empty"),
+                             type = "warning",
+                             showConfirmButton = TRUE)
+
+      DBI::dbCreateTable(conn = CON$current,
+                         name = INPUT$con_table,
+                         fields = new_table_cols())
+
+      CON$extantable <- DBI::dbExistsTable(conn = CON$current,
+                                           name = INPUT$con_table)
+
+      return(TRUE)
      }
   }
 }
@@ -115,7 +124,7 @@ test_db_results <- function(INPUT, CON){
 #' @rdname newtable_exists
 #' @export
 
-newtable_exists <- function(INPUT) {
+load_data_proceed <- function(INPUT) {
 
   showModal(
    modalDialog(title = paste0("Table ",
@@ -123,7 +132,7 @@ newtable_exists <- function(INPUT) {
                               " exists already.\n",
                               "If you go proceed, data will be combined"),
                easyClose = FALSE,
-               actionButton(inputId = "go_askdata", label = "Ok"),
+               actionButton(inputId = "go_loaddata", label = "Ok"),
                modalButton("Cancel"),
                footer = NULL)
   )
@@ -148,34 +157,34 @@ disc_db_con <- function(INPUT) {
   shiny::stopApp(returnValue = invisible())
 }
 
-#' Modal to tell user to select data input
-#' @return a modal object
-#' @rdname tell_about_data
-#' @export
+# #' Modal to tell user to select data input
+# #' @return a modal object
+# #' @rdname tell_about_data
+# #' @export
+#
+# tell_about_data <- function() {
+#   showModal(
+#     modalDialog(title = "Select data to load (.xlsx, .rds or CMD .pdf formats only)",
+#                 easyClose = FALSE,
+#                 actionButton(inputId = "go_data", label = "Ok"),
+#                 modalButton("Cancel"),
+#                 footer = NULL)
+#   )
+# }
 
-tell_about_data <- function() {
-  showModal(
-    modalDialog(title = "Select data to load (.xlsx or .rds formats only)?",
-                easyClose = FALSE,
-                actionButton(inputId = "go_data", label = "Ok"),
-                modalButton("Cancel"),
-                footer = NULL)
-  )
-}
-
-#' Modal to tell user data loaded
-#' @return a modal object
-#' @rdname tell_about_load
-#' @export
-
-tell_about_load <- function() {
-  showModal(
-    modalDialog(title = "Data loaded",
-                easyClose = FALSE,
-                actionButton(inputId = "go_datared", label = "Ok"),
-                footer = NULL)
-  )
-}
+# #' Modal to tell user data loaded
+# #' @return a modal object
+# #' @rdname tell_about_load
+# #' @export
+#
+# tell_about_load <- function() {
+#   showModal(
+#     modalDialog(title = "Data loaded",
+#                 easyClose = FALSE,
+#                 actionButton(inputId = "go_datared", label = "Ok"),
+#                 footer = NULL)
+#   )
+# }
 
 #' Opens modal (text-box for input) to ask if save should go ahead
 #' @param INPUT object

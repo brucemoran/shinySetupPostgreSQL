@@ -1,5 +1,97 @@
 # utilities.R
 
+#' Columns for new table
+#' @return vector of below values
+#' @rdname new_table_cols
+#' @export
+
+new_table_cols <- function(){
+
+  ntc_names <- c(
+    "Year",
+    "Forename",
+    "Surname",
+    "Sex",
+    "Lab ID",
+    "Specimen",
+    "Block",
+    "Hosp. No.",
+    "Hospital",
+    "Cancer",
+    "Test",
+    "Mutation",
+    "Pri/Met",
+    "Tissue",
+    "Source",
+    "Comment",
+    "Pathologist",
+    "Clinician",
+    "Tumour % SVUH",
+    "Tumour % Ext.",
+    "Date_Requested",
+    "Date_Ext_Rec",
+    "Date_Ext_Rep",
+    "Date_Authorised")
+
+    ntc_field_types <- c(
+      "numeric",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "character",
+      "numeric",
+      "numeric",
+      "date",
+      "date",
+      "date",
+      "date")
+
+    ntc_tb <- tibble::as_tibble(t(ntc_field_types))
+    colnames(ntc_tb) <- ntc_names
+
+    ##NB that numeric columns are character, so need to be changed in obsev_extantabled
+    return(ntc_tb)
+}
+
+#' Columns that are numeric
+#' @return vector of below values
+#' @rdname numeric_table_cols
+#' @export
+
+numeric_table_cols <- function(){
+
+  c("Year", "Tumour % SVUH", "Tumour % Ext.")
+
+}
+
+#' Columns that are date
+#' @return vector of below values
+#' @rdname date_table_cols
+#' @export
+
+date_table_cols <- function(){
+
+  c("Date_Requested",
+    "Date_Ext_Rec",
+    "Date_Ext_Rep",
+    "Date_Authorised",
+    "DOB")
+
+}
+
 #' Parse CMD PDF reports
 #' @param pdf_path path to PDF
 #' @return named character vector
@@ -11,24 +103,36 @@ import_cmd_pdfs <- function (pdf_path) {
   print(paste0("Working on: ", pdf_path))
   pdf_f <- pdftools::pdf_text(pdf_path)
   str_f <- unlist(strsplit(pdf_f, "\n"))
-  if(length(str_f)!=0){
+
+  ##test length, scanned image files are usually == "" but can have some text
+  if(length(str_f)>5){
+
+    ##use 20 spaces in a row to denote a new line and split to get single entries
     space20 <- paste(rep(" ", times = 20), collapse = "")
     str_f_sp <- unlist(lapply(str_f, function(fsp) {
       sso <- stringr::str_trim(gsub("\\s *", " ", strsplit(fsp,
         space20)[[1]]))
     }))
 
+  ##remove uneccesary empty lines
   str_f_sp <- str_f_sp[str_f_sp != ""]
+
+  ##function for splitting on a term and returning values
   grep_split_ret <- function(trm, s) {
-  gtrm <- grep(trm, s, value = TRUE)
-  if(length(gtrm) > 0){
-    if(gtrm != trm){
-      ssp <- strsplit(grep(trm, s, value = TRUE), trm)[[1]]
-      strsplit(trimws(ssp[ssp != ""]), " ")[[1]]
-    }} else {
-      NA
+    gtrm <- grep(trm, s, value = TRUE)
+    ##ensure the term exists in a line
+    if(length(gtrm) > 0){
+      ##iff term is different to found term, i.e. value exists
+      ##split by term and trim whitespace of result, else NA
+      if(gtrm != trm){
+        ssp <- strsplit(grep(trm, s, value = TRUE), trm)[[1]]
+        strsplit(trimws(ssp[ssp != ""]), " ")[[1]]
+      }} else {
+        NA
     }
   }
+
+  ##find specimen to ensure we have unique ID to work from
   speci <- grep_split_ret ("Your Ref:", str_f_sp)
   if (length(speci) > 0){
     if(!is.na(speci[1])) {
@@ -76,16 +180,7 @@ import_cmd_pdfs <- function (pdf_path) {
       if (length(gtr) > 0) {
         muts <- paste(unlist(lapply(gtr, function(f) {
           tire <- gsub(" ", "_", rev(strsplit(results[f], "[()]")[[1]])[1])
-          if (length(grep("Tier_III$", tire)) > 0) {
-            tire <- paste0(tire, "_VUS:")
-          }
-          if (length(grep("Tier_II$", tire)) > 0) {
-          tire <- paste0(tire, "_potential:")
-          }
-          if (length(grep("Tier_I$", tire)) > 0) {
-          tire <- paste0(tire, "_strong:")
-          }
-          paste0(tire, gsub(" ", "_", results[f + 1]))
+          paste0(tire, ":", gsub(" ", "_", results[f + 1]))
           })), collapse = ";")
         } else {
           muts <- "NO MUTS"
