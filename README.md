@@ -3,7 +3,7 @@
 ## Requirements
 * Installation of [PostgreSQL](https://www.postgresql.org/download/)
 * On Mac, use brew or [this app](https://postgresapp.com/) is very good and easy to set up
-* A username with password for a database to which you can connect ([I recommend using psql])(https://www.enterprisedb.com/postgres-tutorials/how-create-postgresql-database-and-users-using-psql-and-pgadmin)
+* A username with password for a database to which you can connect ([I recommend using psql](https://www.enterprisedb.com/postgres-tutorials/how-create-postgresql-database-and-users-using-psql-and-pgadmin))
 
 ## Usage
 * Log in using credentials (required)
