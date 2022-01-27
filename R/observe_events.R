@@ -152,39 +152,42 @@ obsev_go_loaddata <- function(INPUT, CON, VALS_DATA){
       vals_new <- shinySetupPostgreSQL::parse_input(INPUT)
 
       ##prep Date_ entries to be dates
-      date_cols <- vals_new[,grep("Date_", colnames(vals_new))]
-      date_class <- names(table(unlist(lapply(date_cols, class))))
+      if(dim(vals_new)[1] > 0){
+        date_cols <- vals_new[,grep("Date_", colnames(vals_new))]
+        date_class <- names(table(unlist(lapply(date_cols, class))))
 
-      if(date_class != "Date"){
-        dc_list <- lapply(date_cols, function(f){
-          delim <- "-"
-          if(length(strsplit(unlist(date_cols[1]), "/")[[1]])){
-            delim <- "/"
-          }
-          as.Date(f, format = paste0("%d",delim,"%m",delim,"%Y"))
-        })
-        vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
-      }
+        if(date_class != "Date"){
+          dc_list <- lapply(date_cols, function(f){
+            delim <- "-"
+            if(length(strsplit(unlist(date_cols[1]), "/")[[1]])){
+              delim <- "/"
+            }
+            as.Date(f, format = paste0("%d",delim,"%m",delim,"%Y"))
+          })
+          vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
+        }
 
-      ##use one of these cols to get Year from when unspecified
-      if("Date_Rec" %in% colnames(vals_new)){
-        is_rec <- "Date_Rec"
+        ##use one of these cols to get Year from when unspecified
+        if("Date_Rec" %in% colnames(vals_new)){
+          is_rec <- "Date_Rec"
+        } else {
+          is_rec <- "Date_Ext_Rec"
+        }
+
+        vals_new[,"Year"] <- unlist(lapply(vals_new[,is_rec], function(f){
+            as.character(format(f, format="%Y"))
+          }))
+
+        num_table_cols <- colnames(vals_new)[colnames(vals_new) %in% numeric_table_cols()]
+        vals_new <- dplyr::mutate(.data = vals_new, dplyr::across(!!num_table_cols, as.numeric))
+
+        ##combine
+        VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vals_new)
+
+        VALS_DATA$Data <- as.data.frame(VALS_DATA$Data)
       } else {
-        is_rec <- "Date_Ext_Rec"
+        print("No data read in check source files")
       }
-
-      vals_new[,"Year"] <- unlist(lapply(vals_new[,is_rec], function(f){
-          as.character(format(f, format="%Y"))
-        }))
-
-      num_table_cols <- colnames(vals_new)[colnames(vals_new) %in% numeric_table_cols()]
-      vals_new <- dplyr::mutate(.data = vals_new, dplyr::across(!!num_table_cols, as.numeric))
-
-      ##combine
-      VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vals_new)
-
-      VALS_DATA$Data <- as.data.frame(VALS_DATA$Data)
-
   })
 }
 
