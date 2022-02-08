@@ -499,7 +499,7 @@ parse_input <- function(INPUT){
       import_cmd_pdfs(pdf_path = f)
     })
 
-    tibList_nn <- Filter(Negate(is.null), tibList)
+    tibList_nn <- Filter(Negate(is.null), lapply(tibList, unlist))
     vals_tib <- dplyr::bind_rows(tibList_nn)
     data_out <- dplyr::distinct(vals_tib)
 
