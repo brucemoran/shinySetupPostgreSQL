@@ -2,7 +2,7 @@
 % Please edit documentation in R/utilities.R
 \name{import_cmd_pdfs}
 \alias{import_cmd_pdfs}
-\title{Parse CMD PDF reports}
+\title{Parse CMD PDF reports, very hacky}
 \usage{
 import_cmd_pdfs(pdf_path)
 }
@@ -13,5 +13,5 @@ import_cmd_pdfs(pdf_path)
 named character vector
 }
 \description{
-Parse CMD PDF reports
+Parse CMD PDF reports, very hacky
 }

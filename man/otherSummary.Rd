@@ -2,7 +2,7 @@
 % Please edit documentation in R/parsing.R
 \name{otherSummary}
 \alias{otherSummary}
-\title{Allow choice to return 'other' as a value fro summary tables}
+\title{Allow choice to return 'other' as a value from summary tables}
 \usage{
 otherSummary(COLNM, CHOICE)
 }
@@ -10,5 +10,5 @@ otherSummary(COLNM, CHOICE)
 a Tibble object
 }
 \description{
-Allow choice to return 'other' as a value fro summary tables
+Allow choice to return 'other' as a value from summary tables
 }

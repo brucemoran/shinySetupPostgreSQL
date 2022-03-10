@@ -5,7 +5,7 @@
 \title{Tests for previous input data, and/or takes input from user
 ensures that data is formatted correctly, saved correctly}
 \usage{
-parse_input(INPUT)
+parse_input(INPUT, VALS_DATA)
 }
 \value{
 a Tibble object

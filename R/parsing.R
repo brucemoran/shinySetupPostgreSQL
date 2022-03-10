@@ -101,111 +101,6 @@ year_shootout <- function(Y1, Y2, Y3, Y4, NAME){
   }))
 }
 
-#' General parser for data structures incoming
-#' ensures that data is formatted correctly
-#' @return a Tibble object
-#' @rdname parseGeneral
-#' @importFrom magrittr '%>%'
-#' @export
-
-parseGeneral <- function(SHEET, NAME){
-
-  print(paste0("Working on: ", NAME))
-
-  SHEET1 <- SHEET
-  colnames(SHEET1) <- toupper(colnames(SHEET1))
-
-  ##parsing out unique colnames for each desired column
-  forenms <- grepSpec(colnames(SHEET1), c("PATIENT", "NAME", "SURNAME"), c(FALSE, FALSE, TRUE))
-  surnms <- grepSpec(colnames(SHEET1), c("PATIENT", "NAME", "SURNAME"), c(FALSE, FALSE, FALSE))
-  lab_ids <- grepSpec(colnames(SHEET1), c("LAB", "SVUH"), c(FALSE, TRUE))
-  svuh_ids <- grep("SVUH LAB", colnames(SHEET1), value=TRUE)
-  hosp_nos <- grepSpec(colnames(SHEET1), c("HOSP", "NO"), c(FALSE, FALSE))
-  hosp_ids <- grepSpec(colnames(SHEET1), c("HOSP", "NO"), c(FALSE, TRUE))
-  tissue_codes <- grep("TISSUE CODE", colnames(SHEET1), value=TRUE)
-  mutation_statuss <- grep("MUTATION", colnames(SHEET1), value=TRUE)
-  date_reqs <- grep("DATE REQ", colnames(SHEET1), value=TRUE)
-  date_auths <- grep("AUTHORISED", colnames(SHEET1), value=TRUE)
-
-  canc_types <- grep(pattern="CANCER|CRC", colnames(SHEET1), value=TRUE)[1]
-  prim_mets <- grep("PRIMARY", colnames(SHEET1), value=TRUE)
-  tiss_sources <- grep("SURGICAL", colnames(SHEET1), value=TRUE)
-  macrodissects <- grep("ACRODIS", colnames(SHEET1), value=TRUE)
-  test_codes <- grep("TEST", colnames(SHEET1), value=TRUE)
-  date_recs <- grep("DATE RCD", colnames(SHEET1), value=TRUE)
-  date_reps <- grep("DATE REP", colnames(SHEET1), value=TRUE)
-
-  wanted_vars <- c(forenms, surnms, lab_ids[1], svuh_ids, hosp_nos, hosp_ids[1],
-                   tissue_codes, mutation_statuss, date_reqs, date_auths)
-
-  ##no lab_ids in EXTERNALS...
-  tatNA_v <- Vectorize(tatNA)
-  SHEET11 <- SHEET1 %>%
-              dplyr::mutate(forenm = colExtant(forenms, SHEET1)) %>%
-              dplyr::mutate(surnm = colExtant(surnms, SHEET1)) %>%
-              dplyr::mutate(lab_id = colExtant(lab_ids, SHEET1)) %>%
-              dplyr::mutate(svuh_id = colExtant(svuh_ids, SHEET1)) %>%
-              dplyr::mutate(hosp_no = colExtant(hosp_nos, SHEET1)) %>%
-              dplyr::mutate(hosp_id = colExtant(hosp_ids, SHEET1)) %>%
-              dplyr::mutate(tissue_code = colExtant(tissue_codes, SHEET1)) %>%
-              dplyr::mutate(mut_status = colExtant(mutation_statuss, SHEET1)) %>%
-              dplyr::mutate(date_req = colExtant(date_reqs, SHEET1)) %>%
-              dplyr::mutate(date_auth = colExtant(date_auths, SHEET1)) %>%
-              dplyr::mutate(canc_type = colExtant(canc_types, SHEET1)) %>%
-              dplyr::mutate(pri_met = colExtant(prim_mets, SHEET1)) %>%
-              dplyr::mutate(tiss_source = colExtant(tiss_sources, SHEET1)) %>%
-              dplyr::mutate(macrodissect = colExtant(macrodissects, SHEET1)) %>%
-              dplyr::mutate(test_code = colExtant(test_codes, SHEET1)) %>%
-              dplyr::mutate(date_rec = colExtant(date_recs, SHEET1)) %>%
-              dplyr::mutate(date_rep = colExtant(date_reps, SHEET1)) %>%
-              dplyr::mutate(surnm = gsub(" ", "", surnm)) %>%
-              tidyr::separate(., svuh_id, into = c("svuh_lab_id", "svuh_block_id"), sep="[[:space:]]", extra = "merge", fill = "right") %>%
-              dplyr::mutate(lab_id_upper = toupper(lab_id)) %>%
-              dplyr::mutate(svuh_block_id = gsub("[[:space:]]", "", svuh_block_id)) %>%
-              dplyr::mutate(lab_id_upper = replace(lab_id_upper, lab_id_upper %in% NA, "-")) %>%
-              dplyr::mutate(svuh_lab_id = replace(svuh_lab_id, svuh_lab_id %in% NA, "-")) %>%
-              dplyr::mutate(svuh_block_id = replace(svuh_block_id, svuh_block_id %in% NA, "-")) %>%
-              dplyr::mutate(hosp_id = replace(hosp_id, hosp_id %in% NA, "-")) %>%
-              dplyr::mutate(hosp_no = replace(hosp_no, hosp_no %in% NA, "-")) %>%
-              dplyr::mutate(tissue_code = replace(tissue_code, tissue_code %in% NA, "-")) %>%
-              dplyr::mutate(mut_status = replace(mut_status, mut_status %in% NA, "-")) %>%
-              dplyr::mutate(canc_type = replace(canc_type, canc_type %in% NA, "-")) %>%
-              dplyr::mutate(pri_met = replace(pri_met, pri_met %in% NA, "-")) %>%
-              dplyr::mutate(tiss_source = replace(tiss_source, tiss_source %in% NA, "-")) %>%
-              dplyr::mutate(macrodissect = replace(macrodissect, macrodissect %in% NA, "-")) %>%
-              dplyr::mutate(test_code = replace(test_code, test_code %in% NA, "-")) %>%
-              dplyr::mutate(date_auth = lubridate::ymd(date_auth)) %>%
-              dplyr::mutate(date_req = lubridate::ymd(date_req)) %>%
-              dplyr::mutate(date_rec = lubridate::ymd(date_rec)) %>%
-              dplyr::mutate(date_rep = lubridate::ymd(date_rep)) %>%
-              dplyr::mutate(tat = tatNA_v(date_auth, date_req)) %>%
-              dplyr::mutate(tat_ext = tatNA_v(date_rep, date_rec)) %>%
-              dplyr::mutate(Year = year_shootout(date_req, date_rec, date_rep, date_auth)) %>%
-              dplyr::mutate(test_coded = test_coding(test_code, NAME)) %>%
-              dplyr::select(Year,
-                            "Forename" = forenm,
-                            "Surname" = surnm,
-                            "Lab ID" = lab_id_upper,
-                            "Specimen" = svuh_lab_id,
-                            "Block" = svuh_block_id,
-                            "Hosp. No." = hosp_no,
-                            "Hospital" = hosp_id,
-                            "Cancer" = canc_type,
-                            "Mutation" = mut_status,
-                            "Test" = test_coded,
-                            "Pri/Met" = pri_met,
-                            "Tissue" = tissue_code,
-                            "Source" = tiss_source,
-                            "Macrod." = macrodissect,
-                            Date_Requested = date_req,
-                            Date_Ext_Rec = date_rec,
-                            Date_Ext_Rep = date_rep,
-                            Date_Authorised = date_auth,
-                            TAT = tat,
-                            TAT_ext = tat_ext) %>%
-    dplyr::filter(!.[[2]] %in% NA & !.[[3]] %in% NA & !.[[5]] %in% "-" & !.[[7]] %in% "-" & !.[[10]] %in% "-")
-}
-
 #' Parse mutation status into correct format
 #' ensures that data is formatted correctly
 #' @return a Tibble object
@@ -281,13 +176,13 @@ refHospital <- function(INPUT){
   replace(., is.na(.), "-")
 }
 
-#' Parse tissue source into correct format
+#' Parse site source into correct format
 #' ensures that data is formatted correctly
 #' @return a Tibble object
-#' @rdname tissueSource
+#' @rdname siteSource
 #' @export
 
-tissueSource <- function(INPUT){
+siteSource <- function(INPUT){
   replace(toupper(INPUT$`Source`), substr(toupper(INPUT$`Source`), 1, 1)=="R", "Resection") %>%
   replace(., substr(., 1, 1)=="S", "Surgical") %>%
   replace(., substr(., 1, 1)=="B", "Biopsy") %>%
@@ -310,13 +205,13 @@ macroDissect <- function(INPUT){
     replace(., . %in% NA, "-")
 }
 
-#' Parse tissue code
+#' Parse site code
 #' ensures that data is formatted correctly
 #' @return a Tibble object
-#' @rdname tissueCode
+#' @rdname siteCode
 #' @export
 
-tissueCode <- function(INPUT){
+siteCode <- function(INPUT){
   abd_match <- c("ABD", "ABDOMINAL MASS")
   adr_match <- c("ADR", "ADRENAL")
   anal_match <- c("ANAL BX", "ANALX", "ANUS")
@@ -353,7 +248,7 @@ tissueCode <- function(INPUT){
   vagina_match <- c("VAG", "VAGINAL", "VAGX")
   vulva_match <- c("VULVA", "VULVX")
 
-  replace(toupper(INPUT$`Tissue`), toupper(INPUT$`Tissue`) %in% abd_match, "ABDOMEN") %>%
+  replace(toupper(INPUT$`Site`), toupper(INPUT$`Site`) %in% abd_match, "ABDOMEN") %>%
   replace(., . %in% adr_match, "ADRENAL") %>%
   replace(., . %in% anal_match, "ANUS") %>%
   replace(., . %in% axil_match, "AXILLARY") %>%
@@ -391,7 +286,7 @@ tissueCode <- function(INPUT){
   replace(., . %in% NA, "-")
 }
 
-#' Allow choice to return 'other' as a value fro summary tables
+#' Allow choice to return 'other' as a value from summary tables
 #' @return a Tibble object
 #' @rdname otherSummary
 #' @export
@@ -403,56 +298,6 @@ otherSummary <- function(COLNM, CHOICE){
   }))
 }
 
-#' Rename parsed data into output format
-#' ensures that data is formatted correctly
-#' @return a Tibble object
-#' @rdname renameParse
-#' @importFrom magrittr '%>%'
-#' @export
-
-renameParse <- function(INPUT){
-
-  print("renameParse")
-
-  INPUT %>% dplyr::mutate(mut_status = mutationStatus(.)) %>%
-  dplyr::mutate(hosp_id = refHospital(.)) %>%
-  dplyr::mutate(tiss_source = tissueSource(.)) %>%
-  dplyr::mutate(tiss_code = tissueCode(.)) %>%
-  dplyr::mutate(macrods = macroDissect(.)) %>%
-  dplyr::mutate(pri_mets = replace(`Pri/Met`, substr(`Pri/Met`, 1, 1)=="P", "Primary")) %>%
-  dplyr::mutate(pri_mets = replace(pri_mets, substr(pri_mets, 1, 1)=="M", "Metastasis")) %>%
-  dplyr::mutate(canc_type = replace(`Cancer`, substr(toupper(`Cancer`), 1, 3)=="LUN", "LUNG")) %>%
-  dplyr::mutate(canc_type = replace(canc_type, substr(toupper(canc_type), 1, 2)=="LN", "LUNG")) %>%
-  dplyr::mutate(canc_type = replace(canc_type, substr(toupper(canc_type), 1, 3)=="THY", "THYROID")) %>%
-  dplyr::mutate(canc_type = replace(canc_type, substr(toupper(canc_type), 1, 3)=="PAP", "PAPILLARY")) %>%
-  dplyr::mutate(canc_type = replace(canc_type, substr(toupper(canc_type), 1, 3)=="MEL", "MELANOMA")) %>%
-  dplyr::mutate(canc_type = replace(canc_type, substr(toupper(canc_type), 1, 3)=="OTH", "OTHER")) %>%
-  dplyr::mutate(canc_type = replace(canc_type, substr(toupper(canc_type), 1, 3)=="DUO", "DUODENAL")) %>%
-  dplyr::mutate(canc_type = replace(canc_type, substr(toupper(canc_type), 1, 3)=="CYT", "CYTOLOGY")) %>%
-  dplyr::select("Year",
-                "Forename",
-                "Surname",
-                "Lab ID",
-                "Specimen",
-                "Block",
-                "Hosp. No.",
-                "Hospital" = hosp_id,
-                "Cancer" = canc_type,
-                "Mutation" = mut_status,
-                "Test",
-                "Pri/Met" = pri_mets,
-                "Tissue" = tiss_code,
-                "Source" = tiss_source,
-                "Macrod." = macrods,
-                Date_Requested,
-                Date_Ext_Rec,
-                Date_Ext_Rep,
-                Date_Authorised,
-                TAT,
-                TAT_ext) %>%
-  dplyr::distinct()
-}
-
 #' Tests for previous input data, and/or takes input from user
 #' ensures that data is formatted correctly, saved correctly
 #' @return a Tibble object
@@ -460,36 +305,42 @@ renameParse <- function(INPUT){
 #' @importFrom magrittr '%>%'
 #' @export
 
-parse_input <- function(INPUT){
+parse_input <- function(INPUT, VALS_DATA){
 
   ##XLSX
   if(length(grep(".xlsx$", INPUT$FILENAMES$datapath[1]) > 0)){
 
     shiny::showModal(modalDialog("Reading XLSX input, please wait.\n", footer = NULL))
 
-    data_out <- shinySetupPostgreSQL::input_from_xlsx(INPUT)
+    shinySetupPostgreSQL::input_from_xlsx(INPUT, VALS_DATA)
+    shinySetupPostgreSQL::obsev_valsdata_new(VALS_DATA)
+
     shiny::removeModal()
 
-    return(data_out)
   }
 
-  ##RDS
-  if(length(grep(".rds$", INPUT$FILENAMES$datapath[1]) > 0)){
-
-    shiny::showModal(modalDialog("Reading RDS input, please wait.\n", footer = NULL))
-
-    tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
-      readRDS(f)
-    })
-
-    tibList_nn <- Filter(Negate(is.null), tibList)
-    vals_tib <- do.call(dplyr::bind_rows, tibList_nn)
-    data_out <- shinySetupPostgreSQL::renameParse(vals_tib) %>%
-                dplyr::distinct()
-    shiny::removeModal()
-
-    return(data_out)
-  }
+  # ##RDS
+  # if(length(grep(".rds$", INPUT$FILENAMES$datapath[1]) > 0)){
+  #
+  #   shiny::showModal(modalDialog("Reading RDS input, please wait.\n", footer = NULL))
+  #
+  #   tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
+  #     readRDS(f)
+  #   })
+  #
+  #   tibList_nn <- Filter(Negate(is.null), tibList)
+  #   vals_tib <- do.call(dplyr::bind_rows, tibList_nn)
+  #
+  #   #instead of rigid parsing, modal asks user to define what cols are what
+  #   #this creates input$ntc_f, for f in 1:length(colnames(new_table_cols()))
+  #   mod_map_columns(VALS_TIB = vals_tib)
+  #   data_out <- obsev_go_map_table(INPUT = INPUT, VALS_TIB = vals_tib)
+  #
+  #   #still require parsing to be done
+  #   shiny::removeModal()
+  #
+  #   return(data_out)
+  # }
 
   if(length(grep(".pdf$", INPUT$FILENAMES$datapath[1]) > 0)){
 
@@ -501,11 +352,10 @@ parse_input <- function(INPUT){
 
     tibList_nn <- Filter(Negate(is.null), lapply(tibList, unlist))
     vals_tib <- dplyr::bind_rows(tibList_nn)
-    data_out <- dplyr::distinct(vals_tib)
+    VALS_DATA$New <- dplyr::distinct(vals_tib)
 
     shiny::removeModal()
 
-    return(data_out)
   }
 }
 
@@ -537,27 +387,120 @@ read_sheets_to_list <- function(FILENAME) {
     return(sheetsList)
 }
 
-#' Input from XLSX
+#' Input XLSX file parsing
 #' @param INPUT object with FILENAMES$datapath
-#' @return data.frame of input
+#' @return list of input sheets matching sheet_grep_string()
+#' @rdname input_xlsx
+#' @importFrom magrittr '%>%'
+#' @export
+
+input_xlsx <- function(INPUT){
+
+  tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
+    sheetList <- shinySetupPostgreSQL::read_sheets_to_list(f)
+    nsheetList <- names(sheetList)
+    nsl <- lapply(nsheetList, function(ff){
+      if(length(grep(sheet_grep_string(), toupper(ff))) > 0){
+        #instead of rigid parsing, modal asks user to define what cols are what
+        #this creates input$ntc_f, for f in 1:length(colnames(new_table_cols()))
+        list(sheetList[[ff]], ff)
+      }
+    })
+    Filter(Negate(is.null), nsl)
+  })
+
+  ##set into single list
+  nms <- c()
+  tiblist <- list()
+  xx <- 0
+  for(x in 1:length(tibList)){
+    for(y in 1:length(tibList[[x]])){
+      xx <- xx + 1
+      nms <- c(nms, tibList[[x]][[y]][[2]])
+      tiblist[[xx]] <- tibList[[x]][[y]][[1]]
+    }
+  }
+  names(tiblist) <- nms
+  return(tiblist)
+}
+
+#' Input XLSX file parsing
+#' @param INPUT object
+#' @param VALS_DATA data values reactive
+#' @return list of input sheets matching sheet_grep_string()
 #' @rdname input_from_xlsx
 #' @importFrom magrittr '%>%'
 #' @export
 
-input_from_xlsx <- function(INPUT){
+input_from_xlsx <- function(INPUT, VALS_DATA){
 
-  tibList <- lapply(INPUT$FILENAMES$datapath, function(f){
-    sheetList <- read_sheets_to_list(f)
-    nsheetList <- names(sheetList)
-    lapply(nsheetList, function(ff){
-      toMatch <- c()
-      if(length(grep("KRAS |BRAF |NRAS |EGFR |EXTERNAL", toupper(ff))) > 0){
-        return(parseGeneral(SHEET = sheetList[[ff]], NAME = ff))
-      }
-    })
+  print("gets in")
+  ##read in sheets from all fiiles first, holding in list structure
+  shets <- shiny::reactiveValues(sh = 0, ix = NULL, mx = NULL, tb = NULL)
+
+  an_shet <- shiny::eventReactive(shets$sh, {
+
+    ##read files and list initially
+
+    if(shets$sh == 0){
+      shets$ix <- input_xlsx(INPUT)
+      shets$mx <- length(shets$ix)
+      print(paste0("Read in total usable sheets: ", shets$mx))
+
+      ##increment to begin parsing these
+      shets$sh <- shets$sh + 1
+    } else{
+      names(shets$ix)[shets$sh]
+    }
   })
-  vals_tib <- do.call(dplyr::bind_rows, tibList)
-  data_out <- renameParse(vals_tib) %>%
-              dplyr::distinct()
-  return(data_out)
+
+  shiny::observeEvent(an_shet(), ignoreInit = TRUE, {
+
+    ##grep out colnames that contain ..., these are empty
+    cnam <- colnames(shets$ix[[an_shet()]])[grep("\\.\\.\\.", colnames(shets$ix[[an_shet()]]), invert = TRUE)]
+
+    ##define a vals_tib element of VD, adding in Test and empty cols
+    VALS_DATA[[paste0(an_shet(),"_vals_tib")]] <- dplyr::select(.data = shets$ix[[an_shet()]], !!cnam) %>%
+    dplyr::mutate(empty = rep(NA, dim(shets$ix[[an_shet()]])[1]),
+                  Test = rep(an_shet(), dim(shets$ix[[an_shet()]])[1]))
+
+    ##map the columns extant into our colnames for table
+    shinySetupPostgreSQL::mod_map_columns(INPUT = INPUT,
+                                          VALS_TIB = VALS_DATA[[paste0(an_shet(), "_vals_tib")]],
+                                          NAME = an_shet())
+  })
+
+  shiny::observeEvent(INPUT$go_map_table, {
+    print("go_map_table")
+    shiny::removeModal()
+
+    ##mapping select
+    tibList <-
+    lapply(colnames(new_table_cols())[-1], function(f){
+
+      ntcf <- paste0("ntc_", f)
+
+      ##select col and renamme
+      dplyr::select(.data = VALS_DATA[[paste0(an_shet(), "_vals_tib")]], !!f := !!INPUT[[ntcf]])
+
+    })
+
+    ##combine into tibble
+    shets$tb <- dplyr::bind_rows(shets$tb, do.call(dplyr::bind_cols, tibList))
+
+    ##continue to allow other sheets to be read until there are no more
+    ##then define VALS_DATA$Xlsx
+    if(shets$sh == shets$mx){
+      print(paste0("Finished working on: ", shets$sh, " / ", shets$mx))
+      VALS_DATA$New <- dplyr::filter(.data = tibble::as_tibble(shets$tb),
+        rlang::eval_tidy(rlang::parse_expr(paste(
+          paste("!", new_table_reqs(), " %in% c(NA, \"-\")"),
+          collapse = " & "))))
+      shinySetupPostgreSQL::obsev_valsdata_new(VALS_DATA)
+
+    } else {
+      print(paste0("Working on: ", shets$sh, " / ", shets$mx))
+      shets$sh <- shets$sh + 1
+    }
+  })
 }
