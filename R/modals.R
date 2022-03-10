@@ -2,10 +2,10 @@
 
 #' Opens modal (text-box for input) to ask for user credentials
 #' @return a modal object
-#' @rdname validate_user
+#' @rdname mod_validate_user_nt
 #' @export
 
-validate_user_nt <- function(INPUT) {
+mod_validate_user_nt <- function(INPUT) {
 
   showModal(
     modalDialog(title = "Enter user and password",
@@ -24,7 +24,8 @@ validate_user_nt <- function(INPUT) {
           textInput(paste0("con_host", INPUT$user_cred), "Host", value = "localhost"),
           textInput(paste0("con_port", INPUT$user_cred), "Port", value = 5432),
           textInput(paste0("con_timezone", INPUT$user_cred), "Timezone", value = "GMT"),
-          textInput(paste0("con_dbname", INPUT$user_cred), "Database Name", value = "postgres")
+          textInput(paste0("con_dbname", INPUT$user_cred), "Database Name", value = "postgres"),
+          textInput(paste0("con_outdir", INPUT$user_cred), "Default Output Dir", value = "~/Downloads")
         )
       )
     )
@@ -34,10 +35,10 @@ validate_user_nt <- function(INPUT) {
 #' Conditionally show advanced connection options for validate_user_nt
 #' from: https://stackoverflow.com/questions/65168516
 #' @param INPUT input reactive values
-#' @rdname validate_user_cond
+#' @rdname mod_validate_user_cond
 #' @export
 
-validate_user_cond <- function(INPUT){
+mod_validate_user_cond <- function(INPUT){
   rv <- shiny::reactiveValues(advanced = FALSE)
 
   shiny::observeEvent(INPUT$valadvan, {
@@ -51,11 +52,11 @@ validate_user_cond <- function(INPUT){
 
 #' Test if connection to Postgresql can be made
 #' @return a modal object
-#' @rdname test_db_con
+#' @rdname mod_test_db_con
 #' @import RPostgres
 #' @export
 
-test_db_con <- function(INPUT) {
+mod_test_db_con <- function(INPUT) {
 
   cancon <- DBI::dbCanConnect(drv = eval(parse(text = INPUT$con_drv)),
                               host = INPUT$con_host,
@@ -70,11 +71,11 @@ test_db_con <- function(INPUT) {
 
 #' Test connection to Postgresql, handle success and error
 #' @return a modal object
-#' @rdname test_db_results
+#' @rdname mod_test_db_results
 #' @import RPostgres
 #' @export
 
-test_db_results <- function(INPUT, CON){
+mod_test_db_results <- function(INPUT, CON){
 
   if(!CON$cancon){
     shinyalert::shinyalert(paste0("Could not connect using specified credentials"),
@@ -121,10 +122,10 @@ test_db_results <- function(INPUT, CON){
 
 #' Tell user a table they are trying to create exists and will be appended with new data
 #' @return a modal object
-#' @rdname newtable_exists
+#' @rdname mod_load_data_proceed
 #' @export
 
-load_data_proceed <- function(INPUT) {
+mod_load_data_proceed <- function(INPUT) {
 
   showModal(
    modalDialog(title = paste0("Table ",
@@ -140,11 +141,11 @@ load_data_proceed <- function(INPUT) {
 
 #' Disconnection from Postgresql
 #' @return a modal object
-#' @rdname disc_db_con
+#' @rdname mod_disc_db_con
 #' @import RPostgres
 #' @export
 
-disc_db_con <- function(INPUT) {
+mod_disc_db_con <- function(INPUT) {
 
   all_cons <- DBI::dbListConnections(eval(parse(text = INPUT$con_drv)))
 
@@ -157,42 +158,13 @@ disc_db_con <- function(INPUT) {
   shiny::stopApp(returnValue = invisible())
 }
 
-# #' Modal to tell user to select data input
-# #' @return a modal object
-# #' @rdname tell_about_data
-# #' @export
-#
-# tell_about_data <- function() {
-#   showModal(
-#     modalDialog(title = "Select data to load (.xlsx, .rds or CMD .pdf formats only)",
-#                 easyClose = FALSE,
-#                 actionButton(inputId = "go_data", label = "Ok"),
-#                 modalButton("Cancel"),
-#                 footer = NULL)
-#   )
-# }
-
-# #' Modal to tell user data loaded
-# #' @return a modal object
-# #' @rdname tell_about_load
-# #' @export
-#
-# tell_about_load <- function() {
-#   showModal(
-#     modalDialog(title = "Data loaded",
-#                 easyClose = FALSE,
-#                 actionButton(inputId = "go_datared", label = "Ok"),
-#                 footer = NULL)
-#   )
-# }
-
 #' Opens modal (text-box for input) to ask if save should go ahead
 #' @param INPUT object
 #' @return a modal object
-#' @rdname sure_to_save
+#' @rdname mod_sure_to_save
 #' @export
 
-sure_to_save <- function(INPUT) {
+mod_sure_to_save <- function(INPUT) {
   showModal(
     modalDialog(
       title = "Enter Table Name to Which to Save (N.B. saving to current table overwrites data and saves edits)",
@@ -207,10 +179,10 @@ sure_to_save <- function(INPUT) {
 
 #' Opens modal telling save location
 #' @return a modal object
-#' @rdname saving_to
+#' @rdname mod_saving_to
 #' @export
 
-saving_to <- function(INPUT) {
+mod_saving_to <- function(INPUT) {
   showModal(
     modalDialog(
       title = paste0("Saving data to: ", INPUT$con_table, ".", Sys.Date(), ".rds"),
@@ -222,13 +194,12 @@ saving_to <- function(INPUT) {
   )
 }
 
-
 #' Opens modal (text-box for input) to ask for name of new column
 #' @return a modal object
-#' @rdname add_column
+#' @rdname mod_add_column
 #' @export
 
-add_column <- function(INPUT) {
+mod_add_column <- function(INPUT) {
   showModal(modalDialog(title = "Enter new column name",
             textInput(inputId = "new_col", "Column Name", placeholder = ""),
             actionButton("ins_col", "Add"),
@@ -240,10 +211,10 @@ add_column <- function(INPUT) {
 #' Opens modal (dropdowns for input) to ask for orders of columns
 #' @param VALS_DATA named list of colnames of data
 #' @return a modal object
-#' @rdname order_column
+#' @rdname mod_order_column
 #' @export
 
-order_column <- function(VALS_DATA) {
+mod_order_column <- function(VALS_DATA) {
   colns <- colnames(VALS_DATA)
   choices_list <- as.list(colns)
   names(choices_list) <- colns
@@ -264,10 +235,10 @@ order_column <- function(VALS_DATA) {
 #' Opens modal (dropdowns for input) to ask for column to rename
 #' @param VALS_DATA named list of colnames of data
 #' @return a modal object
-#' @rdname order_column
+#' @rdname mod_rename_column
 #' @export
 
-rename_column <- function(VALS_DATA) {
+mod_rename_column <- function(VALS_DATA) {
   colns <- colnames(VALS_DATA)
   choices_list <- as.list(colns)
   names(choices_list) <- colns
@@ -286,10 +257,10 @@ rename_column <- function(VALS_DATA) {
 #' Opens modal to ask for columns to delete (only those without data available)
 #' @param VALS_DATA vals_data object
 #' @return a modal object
-#' @rdname delete_column
+#' @rdname mod_delete_column
 #' @export
 
-delete_column <- function(VALS_DATA) {
+mod_delete_column <- function(VALS_DATA) {
   colns <- colnames(VALS_DATA)
   choices_list <- as.list(colns)
   names(choices_list) <- colns
@@ -308,10 +279,10 @@ delete_column <- function(VALS_DATA) {
 #' Opens modal (dropdowns for input) to ask for columns to display uniqly in table
 #' @param VALS_DATA named list of colnames of data
 #' @return a modal object
-#' @rdname uniq_columns
+#' @rdname mod_uniq_columns
 #' @export
 
-uniq_columns <- function(VALS_DATA) {
+mod_uniq_columns <- function(VALS_DATA) {
   colns <- colnames(VALS_DATA)
   choices_list <- as.list(colns)
   names(choices_list) <- colns
@@ -326,5 +297,66 @@ uniq_columns <- function(VALS_DATA) {
             actionButton("uniq_col", "Uniquify"),
             modalButton("Cancel"),
             footer = NULL)
+  )
+}
+
+#' Opens modal to ask for map from data column to table column
+#' @param VALS_TIB input tibble of new data to tabulate
+#' @param SHEETNAME for XLSX input allow sheet name to be used as a column
+#' @return a modal object
+#' @rdname mod_map_columns
+#' @export
+
+mod_map_columns <- function(INPUT, VALS_TIB, NAME = NULL) {
+
+  ##data, and name of sheet which can hold info we want
+  dat_colns <- c("empty", colnames(VALS_TIB), "Test")
+  dat_choice_list <- as.list(dat_colns)
+  names(dat_choice_list) <- dat_colns
+
+  ##new_table_cols
+  ntc_colns <- colnames(shinySetupPostgreSQL::new_table_cols())[-1]
+
+  ##arrange columns of modal
+  leng <- 1:length(ntc_colns)
+  spleng <- split(leng, ceiling(seq_along(leng)/(length(leng)/3)))
+
+  ##modal
+  showModal(
+    modalDialog(
+      title = paste0("Map Input Data from sheet: ", NAME),
+        column(12,
+          column(4, lapply(spleng$`1`, function(f){
+            shiny::selectInput(inputId = paste0("ntc_", ntc_colns[f]),
+                               label = ntc_colns[f],
+                               choices = unique(unlist(dat_choice_list)),
+                               selected = shinySetupPostgreSQL::grep_choice_selectin(choices = unique(unlist(dat_choice_list)),
+                                                      label = ntc_colns[f],
+                                                      fail = "empty"))
+                    })
+                ),
+          column(4, lapply(spleng$`2`, function(f){
+            shiny::selectInput(inputId = paste0("ntc_", ntc_colns[f]),
+                               label = ntc_colns[f],
+                               choices = unique(unlist(dat_choice_list)),
+                               selected = shinySetupPostgreSQL::grep_choice_selectin(choices = unique(unlist(dat_choice_list)),
+                                                      label = ntc_colns[f],
+                                                      fail = "empty"))
+                    })
+                ),
+          column(4, lapply(spleng$`3`, function(f){
+            shiny::selectInput(inputId = paste0("ntc_", ntc_colns[f]),
+                               label = ntc_colns[f],
+                               choices = unique(unlist(dat_choice_list)),
+                               selected = shinySetupPostgreSQL::grep_choice_selectin(choices = unique(unlist(dat_choice_list)),
+                                                      label = ntc_colns[f],
+                                                      fail = "empty"))
+                     })
+                )
+        ),
+      actionButton("go_map_table", "Map"),
+      modalButton("Cancel"),
+      easyClose = FALSE,
+      footer = NULL)
   )
 }

@@ -6,9 +6,9 @@ function(input, output, session) {
 
   ## check credentials exist for Postgresql database, else exit
 
-  shiny::observe( shinySetupPostgreSQL::validate_user_nt(input) )
+  shiny::observe( shinySetupPostgreSQL::mod_validate_user_nt(input) )
 
-  output$advanced <- shinySetupPostgreSQL::validate_user_cond(input)
+  output$advanced <- shinySetupPostgreSQL::mod_validate_user_cond(input)
 
   shiny::outputOptions(output, "advanced", suspendWhenHidden = FALSE)
 
@@ -28,7 +28,7 @@ function(input, output, session) {
 
   ## * load table that already exists ------------------------------------------
 
-  vals_data <- shiny::reactiveValues()
+  vals_data <- shiny::reactiveValues(Data = NULL, New = NULL)
 
   shinySetupPostgreSQL::obsev_extantabled(input, con, vals_data)
 
@@ -72,7 +72,7 @@ function(input, output, session) {
 
   ## * output tables -----------------------------------------------------------
 
-  shinySetupPostgreSQL::obsev_show_tab(input, vals_data, output)
+  shinySetupPostgreSQL::obsev_show_tab(vals_data, output)
 
   shinySetupPostgreSQL::obsev_save_rds(input)
 

@@ -21,32 +21,37 @@ new_table_cols <- function(){
     "Year",
     "Forename",
     "Surname",
+    "DOB",
     "Sex",
-    "Lab ID",
+    "Lab_ID",
     "Specimen",
     "Block",
-    "Hosp. No.",
+    "MRN",
     "Hospital",
     "Cancer",
     "Test",
     "Mutation",
-    "Pri/Met",
-    "Tissue",
+    "Pri_Met",
+    "Site",
     "Source",
+    "Macrod",
     "Comment",
     "Pathologist",
     "Clinician",
-    "Tumour % SVUH",
-    "Tumour % Ext.",
+    "Tumour_pc_SVUH",
+    "Tumour_pc_Ext",
     "Date_Requested",
+    "Date_to_Pathologist",
     "Date_Ext_Rec",
     "Date_Ext_Rep",
-    "Date_Authorised")
+    "Date_Authorised",
+    "User")
 
     ntc_field_types <- c(
       "numeric",
       "character",
       "character",
+      "date",
       "character",
       "character",
       "character",
@@ -67,13 +72,29 @@ new_table_cols <- function(){
       "date",
       "date",
       "date",
-      "date")
+      "date",
+      "date",
+      "character")
 
     ntc_tb <- tibble::as_tibble(t(ntc_field_types))
     colnames(ntc_tb) <- ntc_names
 
     ##NB that numeric columns are character, so need to be changed in obsev_extantabled
     return(ntc_tb)
+}
+
+#' Required columns for new table
+#' @return vector of required values for table, if all NA or "-" row is removed
+#' @rdname new_table_reqs
+#' @export
+
+new_table_reqs <- function(){
+
+  c("Forename",
+    "Surname",
+    "Specimen",
+    "MRN",
+    "Date_Requested")
 }
 
 #' Columns that are numeric
@@ -83,7 +104,9 @@ new_table_cols <- function(){
 
 numeric_table_cols <- function(){
 
-  c("Year", "Tumour % SVUH", "Tumour % Ext.")
+  c("Year",
+    "Tumour_pc_SVUH",
+    "Tumour_pc_Ext")
 
 }
 
@@ -94,15 +117,40 @@ numeric_table_cols <- function(){
 
 date_table_cols <- function(){
 
-  c("Date_Requested",
+  c("DOB",
+    "Date_Requested",
+    "Date_to_Pathologist",
     "Date_Ext_Rec",
     "Date_Ext_Rep",
-    "Date_Authorised",
-    "DOB")
+    "Date_Authorised")
 
 }
 
-#' Parse CMD PDF reports
+#' Take a tibble with colnames to match pattern and force to Date if not already
+#' @param tb tibble
+#' @param pattern string to match colnames to be forced to Date
+#' @return list containing matches and Date values (NB NA coercion likely!)
+#' @rdname date_as_class
+#' @export
+
+date_as_class <- function(tb, pattern){
+
+  ##find date cols
+  date_cols <- tb[, grep(pattern, colnames(tb))]
+
+  ##iterate over classes, if not Date then force
+  dc_list <- lapply(colnames(date_cols), function(f){
+    first_notna <- unlist(date_cols[[f]][!is.na(date_cols[[f]])])[1]
+    if(is.character(first_notna)){
+      return(lubridate::as_date(as.numeric(date_cols[[f]])))
+    } else {
+      return(lubridate::as_date(date_cols[[f]]))
+    }
+  })
+  return(dc_list)
+}
+
+#' Parse CMD PDF reports, very hacky
 #' @param pdf_path path to PDF
 #' @return named character vector
 #' @rdname import_cmd_pdf
@@ -203,13 +251,13 @@ import_cmd_pdfs <- function (pdf_path) {
                     Specimen = speci,
                     Block = block,
                     Cancer = cancer,
-                    `Hosp. No.` = hospno,
-                    `Tumour % Ext.` = tumour_pc,
+                    MRN = hospno,
+                    Tumour_pc_Ext = tumour_pc,
                     Mutation = muts,
                     Test = "External",
-                    `Pri/Met` = "-",
-                    Macrod. = "-",
-                    Tissue = "-",
+                    Pri_Met = "-",
+                    Macrod = "-",
+                    Site = "-",
                     Source = "-",
                     Date_Ext_Rec = date_rec,
                     Date_Ext_Rep = date_rep))
@@ -218,4 +266,89 @@ import_cmd_pdfs <- function (pdf_path) {
   } else {
     return(NULL)
   }
+}
+
+#' string to grep XLSX sheets
+#' @return string
+#' @rdname sheet_grep_string
+#' @export
+
+sheet_grep_string <- function(){
+  c("KRAS |BRAF |NRAS |EGFR |EXTERNAL")
+}
+
+#' Set of predetermined named vector for grep_choice_selectin()
+#' @return named vector
+#' @rdname grep_choice_selectin_vec
+#' @export
+
+grep_choice_selectin_vec <- function(){
+
+  c("Forename" = "First",
+    "Surname"  = "Surname",
+    "Lab_ID"   = "Lab",
+    "Specimen" = "SVUH",
+    "Block"    = "SVUH",
+    "MRN"      = "Hosp\\.",
+    "Hospital" = "Hospital",
+    "Cancer"   = "Cancer",
+    "Test"     = "Test",
+    "Mutation" = "Mutation",
+    "Pri_Met"  = "Primary",
+    "Site"     = "Tissue",
+    "Source"   = "iopsy",
+    "Macrod"   = "Macrod",
+    "Comment"  = "Comment",
+    "Pathologist" = "empty",
+    "Tumour_pc_SVUH" = "%",
+    "Tumour_pc_Ext" = "%",
+    "Date_Requested" = "Requested",
+    "Date_to_Pathologist" = "passed",
+    "Date_Ext_Rec" = "REC",
+    "Date_Ext_Rep" = "EXT",
+    "Date_Authorised" = "Authorise")
+}
+
+#' For selectizeInput, grep on set of choices as to what is most likely match,
+#  or return fail
+#' @param choices vector of choices in selectInput
+#' @param label string label of selectInput
+#' @param fail string to return if no matches
+#' @return string
+#' @rdname grep_choice_selectin
+#' @export
+
+grep_choice_selectin <- function(choices, label, fail, label_vec = NULL){
+
+  if(is.null(label_vec)){
+    label_vec <- shinySetupPostgreSQL::grep_choice_selectin_vec()
+  }
+
+  label_clue <- label_vec[grep(label, names(label_vec))]
+  if(length(match(label_clue,'named character(0)')) > 0){
+    label <- label_clue
+  }
+  cut_label <- strsplit(paste(strsplit(label, "")[[1]][-1], collapse  = ""),
+                        " ")[[1]][1]
+  choice <- grep(cut_label, choices, value = TRUE)
+  if(length(match(choice,character(0)))==0){
+    return(fail)
+  } else {
+    return(choice)
+  }
+}
+
+#' Take a tibble column and split on delimiter returning index x of vector from split
+#' @param tb tibble with column 'col'
+#' @param col colname to split on delim and take xth entry
+#' @param delim delimiter to split entries in tb[,col]
+#' @param x index of element to return
+#' @return string
+#' @rdname tb_col_delim_split
+#' @export
+
+tb_col_delim_split <- function(tb, col, delim, x){
+  unlist(lapply(tb[[col]], function(f){
+      strsplit(" ", f)[[1]][x]
+    }))
 }

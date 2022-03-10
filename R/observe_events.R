@@ -11,11 +11,11 @@ obsev_userpass <- function(INPUT, CON){
   print("obsev_userpass")
   shiny::observeEvent(INPUT$userpass, {
 
-    CON$cancon <- shinySetupPostgreSQL::test_db_con(INPUT)
+    CON$cancon <- shinySetupPostgreSQL::mod_test_db_con(INPUT)
     print(CON$cancon)
     shiny::removeModal()
 
-    CON$extantable <- shinySetupPostgreSQL::test_db_results(INPUT, CON)
+    CON$extantable <- shinySetupPostgreSQL::mod_test_db_results(INPUT, CON)
 
     if(CON$extantable){
       CON$extantabled <- 1
@@ -35,7 +35,7 @@ obsev_disconnex <- function(INPUT){
   print("obsev_disconnex")
   shiny::observeEvent(INPUT$disconnex, {
 
-      shinySetupPostgreSQL::disc_db_con(INPUT)
+      shinySetupPostgreSQL::mod_disc_db_con(INPUT)
 
   })
 }
@@ -51,9 +51,9 @@ obsev_db_conxn <- function(INPUT, OUTPUT){
   print("obsev_db_conxn")
   shiny::observeEvent(INPUT$db_conxn, {
 
-    shinySetupPostgreSQL::validate_user_nt(INPUT)
+    shinySetupPostgreSQL::mod_validate_user_nt(INPUT)
 
-    OUTPUT$advanced <- shinySetupPostgreSQL::validate_user_cond(INPUT)
+    OUTPUT$advanced <- shinySetupPostgreSQL::mod_validate_user_cond(INPUT)
 
     shiny::outputOptions(OUTPUT, "advanced", suspendWhenHidden = FALSE)
   })
@@ -88,6 +88,7 @@ obsev_extantabled <- function(INPUT, CON, VALS_DATA){
     shinyalert::shinyalert(paste0(INPUT$con_table, " has loaded"),
                            type = "success",
                            showConfirmButton = TRUE)
+    CON$TAT <- TRUE
   })
 }
 
@@ -106,32 +107,10 @@ obsev_FILENAMES <- function(INPUT, CON, VALS_DATA){
     ## loaded data is combined with current table
     ## NB that tables can be empty by specifying unused table name
 
-    shinySetupPostgreSQL::load_data_proceed(INPUT)
+    shinySetupPostgreSQL::mod_load_data_proceed(INPUT)
 
   })
 }
-
-# #' Data has been read successfully
-# #' @param INPUT session input
-# #' @param CON connection reactiveVal
-# #' @param VALS_DATA data reactiveVal
-# #' @return NULL
-# #' @rdname obsev_go_datared
-# #' @export
-#
-# obsev_go_datared <- function(INPUT, CON, VALS_DATA){
-#   print("obsev_go_datared")
-#   shiny::observeEvent(INPUT$go_datared, {
-#
-#     shiny::removeModal()
-#
-#     dplyr::copy_to(dest = CON$current,
-#                    df = df_copy_to,
-#                    name = INPUT$con_table,
-#                    temporary = FALSE,
-#                    overwrite = TRUE)
-#   })
-# }
 
 #' Load data into current table
 #' @param INPUT session input
@@ -149,45 +128,8 @@ obsev_go_loaddata <- function(INPUT, CON, VALS_DATA){
       shiny::removeModal()
 
       ##parse FILENAMES
-      vals_new <- shinySetupPostgreSQL::parse_input(INPUT)
+      shinySetupPostgreSQL::parse_input(INPUT, VALS_DATA)
 
-      ##prep Date_ entries to be dates
-      if(dim(vals_new)[1] > 0){
-        date_cols <- vals_new[,grep("Date_", colnames(vals_new))]
-        date_class <- names(table(unlist(lapply(date_cols, class))))
-
-        if(date_class != "Date"){
-          dc_list <- lapply(date_cols, function(f){
-            delim <- "-"
-            if(length(strsplit(unlist(date_cols[1]), "/")[[1]])){
-              delim <- "/"
-            }
-            as.Date(f, format = paste0("%d",delim,"%m",delim,"%Y"))
-          })
-          vals_new[,grep("Date_", colnames(vals_new))] <- dc_list
-        }
-
-        ##use one of these cols to get Year from when unspecified
-        if("Date_Rec" %in% colnames(vals_new)){
-          is_rec <- "Date_Rec"
-        } else {
-          is_rec <- "Date_Ext_Rec"
-        }
-
-        vals_new[,"Year"] <- unlist(lapply(vals_new[,is_rec], function(f){
-            as.character(format(f, format="%Y"))
-          }))
-
-        num_table_cols <- colnames(vals_new)[colnames(vals_new) %in% numeric_table_cols()]
-        vals_new <- dplyr::mutate(.data = vals_new, dplyr::across(!!num_table_cols, as.numeric))
-
-        ##combine
-        VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vals_new)
-
-        VALS_DATA$Data <- as.data.frame(VALS_DATA$Data)
-      } else {
-        print("No data read in check source files")
-      }
   })
 }
 
@@ -201,7 +143,7 @@ obsev_save_tab <- function(INPUT){
   print("obsev_save_tab")
   shiny::observeEvent(INPUT$save_tab, ignoreInit=TRUE, {
 
-    shinySetupPostgreSQL::sure_to_save(INPUT)
+    shinySetupPostgreSQL::mod_sure_to_save(INPUT)
 
   })
 }
@@ -239,7 +181,7 @@ obsev_add_col <- function(INPUT){
   print("obsev_add_col")
   shiny::observeEvent(INPUT$add_col, ignoreInit = TRUE, {
 
-    shinySetupPostgreSQL::add_column(INPUT)
+    shinySetupPostgreSQL::mod_add_column(INPUT)
 
   })
 }
@@ -282,7 +224,7 @@ obsev_del_col <- function(INPUT, VALS_DATA){
   print("obsev_del_col")
   shiny::observeEvent(INPUT$del_col, ignoreInit=TRUE, {
 
-    shinySetupPostgreSQL::delete_column(VALS_DATA$Data)
+    shinySetupPostgreSQL::mod_delete_column(VALS_DATA$Data)
 
   })
 }
@@ -328,7 +270,7 @@ obsev_ord_col <- function(INPUT, VALS_DATA){
   print("obsev_ord_col")
   shiny::observeEvent(INPUT$ord_col, ignoreInit = TRUE, {
 
-    shinySetupPostgreSQL::order_column(VALS_DATA$Data)
+    shinySetupPostgreSQL::mod_order_column(VALS_DATA$Data)
 
   })
 }
@@ -366,7 +308,7 @@ obsev_ren_col <- function(INPUT, VALS_DATA){
   print("obsev_ren_col")
   shiny::observeEvent(INPUT$ren_col, ignoreInit=TRUE, {
 
-    shinySetupPostgreSQL::rename_column(VALS_DATA$Data)
+    shinySetupPostgreSQL::mod_rename_column(VALS_DATA$Data)
 
   })
 }
@@ -397,16 +339,16 @@ obsev_rename_col <- function(INPUT, VALS_DATA){
 #' @rdname obsev_show_tab
 #' @export
 
-obsev_show_tab <- function(INPUT, VALS_DATA, OUTPUT){
+obsev_show_tab <- function(VALS_DATA, OUTPUT){
   print("obsev_show_tab")
-  shiny::observeEvent(INPUT$show_tab, ignoreInit=TRUE, {
+  shiny::observeEvent(VALS_DATA$Data, ignoreInit=TRUE, {
 
     OUTPUT$maintable1 <- DT::renderDataTable({
-        shinySetupPostgreSQL::render_simple_maintable(VALS_DATA$Data)
+        shinySetupPostgreSQL::ro_render_simple_maintable(VALS_DATA)
     })
 
     OUTPUT$maintable2 <- DT::renderDataTable({
-        shinySetupPostgreSQL::render_simple_maintable(VALS_DATA$Data)
+        shinySetupPostgreSQL::ro_render_simple_maintable(VALS_DATA)
     })
   })
 }
@@ -421,7 +363,7 @@ obsev_save_rds <- function(INPUT){
   print("obsev_save_rds")
   shiny::observeEvent(INPUT$save_rds, ignoreInit=TRUE, {
 
-    shinySetupPostgreSQL::saving_to(INPUT)
+    shinySetupPostgreSQL::mod_saving_to(INPUT)
 
   })
 }
@@ -461,7 +403,7 @@ obsev_uni_col <- function(INPUT, VALS_DATA){
   print("obsev_uni_col")
   shiny::observeEvent(INPUT$uni_col, ignoreInit=TRUE, {
 
-    shinySetupPostgreSQL::uniq_columns(VALS_DATA$Data)
+    shinySetupPostgreSQL::mod_uniq_columns(VALS_DATA$Data)
 
   })
 }
@@ -488,7 +430,7 @@ obsev_uniq_col <- function(INPUT, VALS_DATA, OUTPUT){
 
     shiny::removeModal()
 
-    VALS_DATA$Uniq <- shinySetupPostgreSQL::render_unique_maintable(VALS_DATA$Data[,uniq_col])
+    VALS_DATA$Uniq <- shinySetupPostgreSQL::ro_render_unique_maintable(VALS_DATA$Data[,uniq_col])
     OUTPUT$uniqtable <- DT::renderDataTable({
       VALS_DATA$Uniq
     })
@@ -501,5 +443,57 @@ obsev_uniq_col <- function(INPUT, VALS_DATA, OUTPUT){
         write.csv(VALS_DATA$Uniq, con)
       }
     )
+  })
+}
+
+#' Parse Dates and other Data from VALS_DATA$New and binds to VALS_DATA$Data
+#' @param VALS_DATA reactive with $Data element of data (can be empty) and $New (nonempty)
+#' @return none, changes VALS_DATA$Data to df with VALS_DATA$New added
+#' @rdname obsev_valsdata_new
+#' @importFrom magrittr '%>%'
+#' @export
+
+obsev_valsdata_new <- function(VALS_DATA){
+
+  ##dates
+  shiny::observeEvent(VALS_DATA$New, ignoreNULL = TRUE, ignoreInit = TRUE, {
+    print("Parsing VALS_DATA$New")
+
+    vdn <- VALS_DATA$New
+
+    ##find dates and format
+    print(as.data.frame(vdn))
+    vdn[,grep("Date_|DOB", colnames(vdn))] <- date_as_class(tb = vdn, pattern = "Date_|DOB")
+
+    ##use one of these cols to get Year from when unspecified
+    if(length(grep("Date_Requested", colnames(vdn)))>0){
+      year_from <- "Date_Requested"
+    } else {
+      year_from <- "Date_Ext_Rec"
+    }
+    vdn[,"Year"] <- unlist(lapply(vdn[, year_from], function(f){
+        as.character(format(f, format = "%Y"))
+      }))
+
+    ##make numeric cols into numeric
+    num_table_cols <- colnames(vdn)[colnames(vdn) %in% numeric_table_cols()]
+    vdn <- dplyr::mutate(.data = vdn, dplyr::across(!!num_table_cols, as.numeric))
+
+    ##block can be contained in SVUH Lab No.
+    vdn <- tidyr::separate(data = vdn,
+                           col = "Specimen",
+                           into = c("Specimen", "Block"),
+                           sep = "[[:space:]]",
+                           extra = "merge",
+                           fill = "right")
+
+    ##combine
+    if(is.null(VALS_DATA$Data)){
+      VALS_DATA$Data <- vdn
+    } else {
+      VALS_DATA$Data <- dplyr::bind_rows(VALS_DATA$Data, vdn)
+    }
+
+    VALS_DATA$Data <- as.data.frame(VALS_DATA$Data)
   })
 }

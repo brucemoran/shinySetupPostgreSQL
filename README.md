@@ -12,4 +12,4 @@
 * Simply close the browser tab to quit
 
 ## NBs
-* Package was written for a specific use case with specific XLSX, RDS, PDF inputs, parsing modules should be written for different formatting
+* Previously the parsing was specific to certain inputs but has been revised to make the package more extensible to any input. This uses a modal to rename column names of imported data into the preferred formatting, or into user-defined column naming.

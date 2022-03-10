@@ -4,14 +4,14 @@
 \alias{obsev_show_tab}
 \title{Show table}
 \usage{
-obsev_show_tab(INPUT, VALS_DATA, OUTPUT)
+obsev_show_tab(VALS_DATA, OUTPUT)
 }
 \arguments{
-\item{INPUT}{session input}
-
 \item{VALS_DATA}{data reactiveVal}
 
 \item{OUTPUT}{session OUTPUT}
+
+\item{INPUT}{session input}
 }
 \description{
 Show table
